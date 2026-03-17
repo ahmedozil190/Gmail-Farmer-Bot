@@ -231,7 +231,10 @@ def mark_paid(wid):
         with open("crash.log", "a", encoding="utf-8") as f:
             f.write(traceback.format_exc() + "\n")
         flash("An internal error occurred. Check crash.log.", "danger")
-    return redirect(url_for("withdrawals", status=request.args.get("status", "all")))
+    return redirect(url_for("withdrawals", 
+                           status=request.args.get("status", "all"),
+                           user_id=request.args.get("user_id", ""),
+                           date=request.args.get("date", "")))
 
 @app.route("/withdrawals/reject/<int:wid>", methods=["POST"])
 @requires_auth
@@ -270,7 +273,10 @@ def reject_withdrawal_route(wid):
         with open("crash.log", "a", encoding="utf-8") as f:
             f.write(traceback.format_exc() + "\n")
         flash("An internal error occurred. Check crash.log.", "danger")
-    return redirect(url_for("withdrawals", status=request.args.get("status", "all")))
+    return redirect(url_for("withdrawals", 
+                           status=request.args.get("status", "all"),
+                           user_id=request.args.get("user_id", ""),
+                           date=request.args.get("date", "")))
 
 @app.route("/settings", methods=["GET", "POST"])
 @requires_auth

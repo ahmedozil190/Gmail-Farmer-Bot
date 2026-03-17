@@ -7,18 +7,21 @@
 <!-- Filters Section -->
 <div class="glass-card" style="padding: 1.25rem;">
     <div style="display: flex; gap: 4px; background: rgba(0,0,0,0.2); padding: 4px; border-radius: 12px; margin-bottom: 1rem;">
-        {% for tab, label in [('all','All'), ('pending','Pending'), ('completed','Paid')] %}
-        <a href="{{ url_for('withdrawals', status=tab) }}" 
+        {% for tab, label in [('all','All'), ('pending','Pending'), ('completed','Paid'), ('rejected','Rejected')] %}
+        <a href="{{ url_for('withdrawals', status=tab, user_id=search_user, date=d_date) }}" 
            style="flex: 1; text-align: center; padding: 8px; border-radius: 8px; text-decoration: none; font-size: 0.85rem; font-weight: 600; color: {% if current_status == tab %}white{% else %}var(--text-secondary){% endif %}; background: {% if current_status == tab %}var(--accent-blue){% else %}transparent{% endif %}; transition: all 0.3s;">
            {{ label }}
         </a>
         {% endfor %}
     </div>
 
-    <form action="{{ url_for('withdrawals') }}" method="GET" style="display: flex; gap: 8px;">
+    <form action="{{ url_for('withdrawals') }}" method="GET" style="display: flex; flex-direction: column; gap: 10px;">
         <input type="hidden" name="status" value="{{ current_status }}">
-        <input type="text" name="user_id" class="form-control" style="height: 40px; font-size: 0.85rem;" placeholder="User ID..." value="{{ search_user }}">
-        <button type="submit" class="btn btn-primary" style="width: 80px; height: 40px; border-radius: 10px;">Find</button>
+        <div style="display: flex; gap: 8px;">
+            <input type="text" name="user_id" class="form-control" style="height: 44px; font-size: 0.85rem; flex: 2;" placeholder="User ID..." value="{{ search_user }}">
+            <input type="date" name="date" class="form-control" style="height: 44px; font-size: 0.85rem; flex: 1; min-width: 120px;" value="{{ d_date }}">
+        </div>
+        <button type="submit" class="btn btn-primary" style="height: 44px; border-radius: 12px;">Find Requests</button>
     </form>
 </div>
 
@@ -46,7 +49,14 @@
                 <div style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 8px;">
                     <div style="color: var(--success); font-weight: 700; font-size: 1.1rem;">${{ "%.2f"|format(w.amount) }}</div>
                     <div style="text-align: right;"><i class="fa-solid fa-user" style="font-size: 0.7rem; opacity: 0.7;"></i> {{ w.user_id }}</div>
-                    <div colspan="2" style="font-family: monospace; font-size: 0.75rem; word-break: break-all; background: rgba(255,255,255,0.03); padding: 6px; border-radius: 8px; border: 1px solid var(--border-card);">
+                    
+                    {% if w.status == 'rejected' and w.reject_reason %}
+                    <div style="grid-column: span 2; color: var(--danger); font-size: 0.8rem; background: rgba(239, 68, 68, 0.05); padding: 8px; border-radius: 8px; border: 1px solid rgba(239, 68, 68, 0.1);">
+                        <strong>Reason:</strong> {{ w.reject_reason }}
+                    </div>
+                    {% endif %}
+
+                    <div style="grid-column: span 2; font-family: monospace; font-size: 0.75rem; word-break: break-all; background: rgba(255,255,255,0.03); padding: 6px; border-radius: 8px; border: 1px solid var(--border-card);">
                         {{ w.wallet_address }}
                     </div>
                     <div style="grid-column: span 2; font-size: 0.7rem; opacity: 0.6; margin-top: 4px;">{{ w.created_at[:16].replace('T', ', ') }}</div>

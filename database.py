@@ -69,9 +69,16 @@ def init_db():
             method         TEXT,
             wallet_address TEXT,
             status         TEXT DEFAULT 'pending',
-            created_at     TEXT
+            created_at     TEXT,
+            reject_reason  TEXT
         )
     """)
+
+    # Migration: Add reject_reason column if it doesn't exist
+    try:
+        cur.execute("ALTER TABLE withdrawals ADD COLUMN reject_reason TEXT")
+    except sqlite3.OperationalError:
+        pass
 
     # Migration: Add price column to submissions if it doesn't exist
     try:
