@@ -1,0 +1,184 @@
+{% extends "layout.html" %}
+
+{% block title %}User Management{% endblock %}
+
+{% block content %}
+<div class="glass-card">
+    <div style="display: flex; flex-direction: column; gap: 1rem; margin-bottom: 2rem;">
+        <h2 style="margin: 0; font-size: 1.2rem;">User Management</h2>
+        <form action="{{ url_for('users') }}" method="GET" style="display: flex; gap: 8px;">
+            <input type="text" name="q" placeholder="Search users..." value="{{ search_query or '' }}" class="form-control" style="height: 44px; font-size: 0.9rem;">
+            <button type="submit" class="btn btn-primary" style="width: 50px; height: 44px;"><i class="fa-solid fa-magnifying-glass"></i></button>
+            {% if search_query %}
+            <a href="{{ url_for('users') }}" class="btn btn-danger" style="width: 50px; height: 44px;"><i class="fa-solid fa-xmark"></i></a>
+            {% endif %}
+        </form>
+    </div>
+
+    <div class="table-container">
+        {% for user in users %}
+        <div class="list-item" style="cursor: pointer;" onclick="openEditModal('{{ user.user_id }}', '{{ user.username }}', '{{ user.full_name }}', '{{ user.balance }}', '{{ user.status }}')">
+            <div class="list-header">
+                <span class="list-title">{% if user.full_name %}{{ user.full_name }}{% else %}{{ user.user_id }}{% endif %}</span>
+                {% if user.status == 'banned' %}
+                    <span class="badge rejected">Banned</span>
+                {% else %}
+                    <span class="badge approved">Active</span>
+                {% endif %}
+            </div>
+            
+            <div class="list-meta">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                    <span style="font-size: 0.8rem; color: var(--accent-blue);">@{{ user.username or 'NoUser' }}</span>
+                    <span style="font-size: 0.8rem; opacity: 0.7;">ID: {{ user.user_id }}</span>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; border-top: 1px solid var(--border-card); padding-top: 10px;">
+                    <div style="text-align: center;">
+                        <small style="display:block; opacity: 0.6; font-size: 0.65rem;">BALANCE</small>
+                        <span style="color: var(--success); font-weight: 700;">${{ "%.2f"|format(user.balance) }}</span>
+                    </div>
+                    <div style="text-align: center;">
+                        <small style="display:block; opacity: 0.6; font-size: 0.65rem;">HOLD</small>
+                        <span style="color: var(--warning); font-weight: 700;">${{ "%.2f"|format(user.pending_balance) }}</span>
+                    </div>
+                    <div style="text-align: center;">
+                        <small style="display:block; opacity: 0.6; font-size: 0.65rem;">TASKS</small>
+                        <span style="color: var(--accent-purple); font-weight: 700;">{{ user.approved_count }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <p style="text-align:center; padding:2rem; color:var(--text-secondary); font-style: italic;">No users found.</p>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Edit User Modal -->
+<div id="editModal" class="modal-overlay">
+    <div class="modal-content glass-card">
+        <div class="modal-header">
+            <h3 id="modalTitle">Edit User</h3>
+            <button class="close-btn" onclick="closeEditModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div style="margin-bottom: 1.5rem; background: rgba(255,255,255,0.03); padding: 12px; border-radius: 12px; border: 1px solid var(--border-card);">
+                <div style="color: var(--text-secondary); font-size: 0.85rem;">Name: <span id="modalFullNameDisplay" style="color: white; font-weight: 600;"></span></div>
+                <div style="color: var(--text-secondary); font-size: 0.85rem;">ID: <span id="modalUserIdDisplay" style="color: white; font-weight: 600;"></span></div>
+                <div style="margin-top: 8px; font-size: 1.1rem; color: var(--success); font-weight: 700;">Balance: <span id="modalCurrentBalance"></span></div>
+            </div>
+
+            <form id="balanceForm" method="POST">
+                <div class="form-group">
+                    <label class="form-label">Adjust Balance</label>
+                    <div style="display: flex; gap: 8px;">
+                        <input type="number" name="amount" step="0.01" placeholder="Amount..." class="form-control" required>
+                        <div style="display: flex; gap: 4px;">
+                            <button type="submit" name="action" value="add" class="btn btn-primary" style="width: 50px;"><i class="fa-solid fa-plus"></i></button>
+                            <button type="submit" name="action" value="remove" class="btn btn-danger" style="width: 50px;"><i class="fa-solid fa-minus"></i></button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+
+            <div style="margin-top: 25px; border-top: 1px solid var(--border-card); padding-top: 20px;">
+                <form id="statusForm" method="POST">
+                    <input type="hidden" name="status" id="modalStatusInput">
+                    <button type="submit" id="modalStatusBtn" class="btn" style="height: 44px;"></button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .modal-overlay {
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(10px);
+        display: none; justify-content: center; align-items: center;
+        z-index: 2000; opacity: 0; transition: opacity 0.3s;
+    }
+    .modal-overlay.active { display: flex; opacity: 1; }
+    .modal-content { width: 90%; max-width: 400px; padding: 2rem; transform: scale(0.9); transition: transform 0.3s; }
+    .modal-overlay.active .modal-content { transform: scale(1); }
+    .close-btn { background: none; border: none; color: var(--text-secondary); font-size: 1.5rem; cursor: pointer; }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
+</style>
+
+<script>
+function openEditModal(userId, username, fullName, balance, status) {
+    const modal = document.getElementById('editModal');
+    const q = new URLSearchParams(window.location.search).get('q') || '';
+    
+    document.getElementById('modalUserIdDisplay').innerText = userId;
+    document.getElementById('modalFullNameDisplay').innerText = fullName && fullName !== 'None' ? fullName : (username && username !== 'None' ? '@' + username : 'User');
+    document.getElementById('modalCurrentBalance').innerText = '$' + parseFloat(balance).toFixed(2);
+    
+    const baseUrl = window.location.origin;
+    document.getElementById('balanceForm').action = `${baseUrl}/users/balance/${userId}?q=${encodeURIComponent(q)}`;
+    document.getElementById('statusForm').action = `${baseUrl}/users/status/${userId}?q=${encodeURIComponent(q)}`;
+    
+    const statusBtn = document.getElementById('modalStatusBtn');
+    const statusInput = document.getElementById('modalStatusInput');
+    
+    if(status === 'banned') {
+        statusBtn.innerText = 'Unban User';
+        statusBtn.className = 'btn btn-primary';
+        statusInput.value = 'active';
+    } else {
+        statusBtn.innerText = 'Ban Account';
+        statusBtn.className = 'btn btn-danger';
+        statusInput.value = 'banned';
+    }
+    
+    modal.classList.add('active');
+}
+
+function closeEditModal() { document.getElementById('editModal').classList.remove('active'); }
+document.getElementById('editModal').addEventListener('click', function(e) { if (e.target === this) closeEditModal(); });
+</script>
+    const modal = document.getElementById('editModal');
+    const q = new URLSearchParams(window.location.search).get('q') || '';
+    
+    // Set headers
+    document.getElementById('modalUserIdDisplay').innerText = userId;
+    document.getElementById('modalFullNameDisplay').innerText = fullName && fullName !== 'None' ? fullName : (username && username !== 'None' ? '@' + username : 'Anonymous User');
+    document.getElementById('modalCurrentBalance').innerText = '$' + parseFloat(balance).toFixed(2);
+    
+    // Set Forms
+    const baseUrl = window.location.origin;
+    document.getElementById('balanceForm').action = `${baseUrl}/users/balance/${userId}?q=${encodeURIComponent(q)}`;
+    document.getElementById('statusForm').action = `${baseUrl}/users/status/${userId}?q=${encodeURIComponent(q)}`;
+    
+    // Status Logic
+    const statusBtn = document.getElementById('modalStatusBtn');
+    const statusInput = document.getElementById('modalStatusInput');
+    
+    if(status === 'banned') {
+        statusBtn.innerText = 'Unban User';
+        statusBtn.className = 'btn-vibrant blue';
+        statusInput.value = 'active';
+    } else {
+        statusBtn.innerText = 'Ban User';
+        statusBtn.className = 'btn-vibrant danger';
+        statusInput.value = 'banned';
+    }
+    
+    modal.classList.add('active');
+}
+
+function closeEditModal() {
+    document.getElementById('editModal').classList.remove('active');
+}
+
+// Close on backdrop click
+document.getElementById('editModal').addEventListener('click', function(e) {
+    if (e.target === this) closeEditModal();
+});
+
+// Close on Escape key
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closeEditModal();
+});
+</script>
+{% endblock %}

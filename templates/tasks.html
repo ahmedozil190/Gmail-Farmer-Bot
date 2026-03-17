@@ -1,0 +1,62 @@
+{% extends "layout.html" %}
+
+{% block title %}Task Submissions{% endblock %}
+
+{% block content %}
+<div class="glass-card">
+    <div style="margin-bottom: 1.5rem;">
+        <h2 style="margin: 0; font-size: 1rem;">Submission Queue</h2>
+    </div>
+    
+    <div class="table-container">
+        {% for task in tasks %}
+        <div class="list-item">
+            <div class="list-header">
+                <span class="list-title">{{ task.gmail_account }}</span>
+                {% if task.status == 'approved' %}
+                    <span class="badge approved">Approved</span>
+                {% elif task.status == 'rejected' %}
+                    <span class="badge rejected">Rejected</span>
+                {% else %}
+                    <span class="badge pending">Pending</span>
+                {% endif %}
+            </div>
+            
+            <div class="list-meta">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                    <div><i class="fa-solid fa-user" style="font-size: 0.7rem; opacity: 0.7; margin-right: 4px;"></i> {{ task.user_id }}</div>
+                    <div style="text-align: right;"><i class="fa-solid fa-calendar-days" style="font-size: 0.7rem; opacity: 0.7; margin-right: 4px;"></i> {{ task.submitted_at[:16].replace('T', ', ') }}</div>
+                    <div style="font-family: monospace; color: var(--accent-purple);">{{ task.gmail_password }}</div>
+                    <div style="text-align: right; color: var(--success); font-weight: 700;">${{ "%.2f"|format(task.price) }}</div>
+                </div>
+                
+                {% if task.status == 'rejected' %}
+                <div style="margin-top: 8px; border-top: 1px solid rgba(239, 68, 68, 0.1); padding-top: 8px; color: var(--danger); font-size: 0.75rem;">
+                    <strong>Reason:</strong> {{ task.reject_reason }}
+                </div>
+                {% endif %}
+            </div>
+
+            {% if task.status == 'pending' %}
+            <div style="margin-top: 10px; display: flex; flex-direction: column; gap: 10px;">
+                <form action="{{ url_for('handle_task', action='approve', task_id=task.id) }}" method="POST">
+                    <button type="submit" class="btn btn-primary" style="height: 40px; font-size: 0.85rem;">
+                        <i class="fa-solid fa-check"></i> Approve Submission
+                    </button>
+                </form>
+                
+                <form action="{{ url_for('handle_task', action='reject', task_id=task.id) }}" method="POST" style="display: flex; gap: 8px;">
+                    <input type="text" name="reason" class="form-control" style="height: 40px; font-size: 0.8rem; background: rgba(255,255,255,0.05);" placeholder="Rejection reason..." required>
+                    <button type="submit" class="btn btn-danger" style="width: 50px; height: 40px;">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </form>
+            </div>
+            {% endif %}
+        </div>
+        {% else %}
+        <p style="text-align:center; padding:2rem; color:var(--text-secondary); font-style: italic;">No submissions found.</p>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

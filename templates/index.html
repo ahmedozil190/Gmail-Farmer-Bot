@@ -1,0 +1,63 @@
+{% extends "layout.html" %}
+
+{% block title %}Dashboard Overview{% endblock %}
+
+{% block content %}
+<div class="stats-grid">
+    <div class="glass-card stat-card blue">
+        <div class="stat-title">Total Users</div>
+        <div class="stat-value">{{ total_users }}</div>
+    </div>
+    
+    <div class="glass-card stat-card green">
+        <div class="stat-title">Approved Tasks</div>
+        <div class="stat-value">{{ approved_tasks }}</div>
+    </div>
+    
+    <div class="glass-card stat-card amber">
+        <div class="stat-title">Pending Tasks</div>
+        <div class="stat-value">{{ pending_tasks }}</div>
+    </div>
+    
+    <div class="glass-card stat-card purple">
+        <div class="stat-title">Total Paid</div>
+        <div class="stat-value">${{ "%.2f"|format(total_paid) }}</div>
+        <div style="font-size:0.75rem; color:#94a3b8; margin-top:5px;">Across {{ total_withdrawn_count }} withdrawals</div>
+    </div>
+</div>
+
+<div class="glass-card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+        <h2 style="margin: 0; font-size: 1rem;">Recent Tasks</h2>
+        <a href="{{ url_for('tasks') }}" style="color: var(--accent-blue); text-decoration: none; font-size: 0.8rem; font-weight: 600;">See All</a>
+    </div>
+    
+    {% if recent_tasks %}
+    <div class="table-container">
+        {% for task in recent_tasks %}
+        <div class="list-item">
+            <div class="list-header">
+                <span class="list-title">{{ task.gmail_account }}</span>
+                {% if task.status == 'approved' %}
+                    <span class="badge approved">Approved</span>
+                {% elif task.status == 'rejected' %}
+                    <span class="badge rejected">Rejected</span>
+                {% else %}
+                    <span class="badge pending">Pending</span>
+                {% endif %}
+            </div>
+            <div class="list-meta">
+                <div style="display: flex; justify-content: space-between;">
+                    <span>ID: #{{ task.id }}</span>
+                    <span>{{ task.submitted_at[:16].replace('T', ', ') }}</span>
+                </div>
+                <div style="margin-top: 4px; font-family: monospace; color: var(--accent-blue);">{{ task.gmail_password }}</div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p style="color:var(--text-secondary); font-style:italic; text-align: center; padding: 1rem;">No tasks submitted yet.</p>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,57 @@
+{% extends "layout.html" %}
+
+{% block title %}Global Settings{% endblock %}
+
+{% block content %}
+<div class="glass-card">
+    <div style="margin-bottom: 1.5rem;">
+        <h2 style="margin: 0; font-size: 1.1rem; color: white;">Bot Configuration</h2>
+    </div>
+    
+    <form action="{{ url_for('settings') }}" method="POST">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+            <div class="form-group">
+                <label class="form-label">Gmail Price ($)</label>
+                <input type="number" step="0.01" name="gmail_price" class="form-control" value="{{ price }}" required>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Ref Bonus ($)</label>
+                <input type="number" step="0.01" name="referral_bonus" class="form-control" value="{{ bonus }}" required>
+            </div>
+        </div>
+        
+        <div style="margin-top: 10px; margin-bottom: 20px;">
+            <p style="font-size: 0.8rem; color: var(--text-secondary);"><i class="fa-solid fa-circle-info" style="margin-right: 5px;"></i> Minimum withdrawal limits per method:</p>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+            <div class="form-group">
+                <label class="form-label">Vodafone ($)</label>
+                <input type="number" step="0.01" name="min_voda" class="form-control" value="{{ min_voda }}" required>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Binance ($)</label>
+                <input type="number" step="0.01" name="min_binance" class="form-control" value="{{ min_binance }}" required>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">USDT (BEP20) ($)</label>
+                <input type="number" step="0.01" name="min_usdt" class="form-control" value="{{ min_usdt }}" required>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">TRX (TRC20) ($)</label>
+                <input type="number" step="0.01" name="min_trx" class="form-control" value="{{ min_trx }}" required>
+            </div>
+        </div>
+        
+        <div style="margin-top: 1.5rem;">
+            <button type="submit" class="btn btn-primary" style="height: 50px; font-size: 1rem;">
+                <i class="fa-solid fa-floppy-disk"></i> Update Bot Settings
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

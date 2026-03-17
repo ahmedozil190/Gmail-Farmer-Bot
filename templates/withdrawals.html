@@ -1,0 +1,77 @@
+{% extends "layout.html" %}
+
+{% block title %}Withdrawals{% endblock %}
+
+{% block content %}
+
+<!-- Filters Section -->
+<div class="glass-card" style="padding: 1.25rem;">
+    <div style="display: flex; gap: 4px; background: rgba(0,0,0,0.2); padding: 4px; border-radius: 12px; margin-bottom: 1rem;">
+        {% for tab, label in [('all','All'), ('pending','Pending'), ('completed','Paid')] %}
+        <a href="{{ url_for('withdrawals', status=tab) }}" 
+           style="flex: 1; text-align: center; padding: 8px; border-radius: 8px; text-decoration: none; font-size: 0.85rem; font-weight: 600; color: {% if current_status == tab %}white{% else %}var(--text-secondary){% endif %}; background: {% if current_status == tab %}var(--accent-blue){% else %}transparent{% endif %}; transition: all 0.3s;">
+           {{ label }}
+        </a>
+        {% endfor %}
+    </div>
+
+    <form action="{{ url_for('withdrawals') }}" method="GET" style="display: flex; gap: 8px;">
+        <input type="hidden" name="status" value="{{ current_status }}">
+        <input type="text" name="user_id" class="form-control" style="height: 40px; font-size: 0.85rem;" placeholder="User ID..." value="{{ search_user }}">
+        <button type="submit" class="btn btn-primary" style="width: 80px; height: 40px; border-radius: 10px;">Find</button>
+    </form>
+</div>
+
+<!-- Withdrawals List -->
+<div class="glass-card">
+    <div style="margin-bottom: 1rem;">
+        <h2 style="margin: 0; font-size: 1rem;">Withdrawal Requests</h2>
+    </div>
+
+    <div class="table-container">
+        {% for w in withdrawals %}
+        <div class="list-item">
+            <div class="list-header">
+                <span class="list-title">{{ w.method.replace('💳','').replace('🟡','').replace('🟢','').replace('💎','').strip() }}</span>
+                {% if w.status == 'completed' %}
+                    <span class="badge approved">Paid</span>
+                {% elif w.status == 'rejected' %}
+                    <span class="badge rejected">Rejected</span>
+                {% else %}
+                    <span class="badge pending">Pending</span>
+                {% endif %}
+            </div>
+            
+            <div class="list-meta">
+                <div style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 8px;">
+                    <div style="color: var(--success); font-weight: 700; font-size: 1.1rem;">${{ "%.2f"|format(w.amount) }}</div>
+                    <div style="text-align: right;"><i class="fa-solid fa-user" style="font-size: 0.7rem; opacity: 0.7;"></i> {{ w.user_id }}</div>
+                    <div colspan="2" style="font-family: monospace; font-size: 0.75rem; word-break: break-all; background: rgba(255,255,255,0.03); padding: 6px; border-radius: 8px; border: 1px solid var(--border-card);">
+                        {{ w.wallet_address }}
+                    </div>
+                    <div style="grid-column: span 2; font-size: 0.7rem; opacity: 0.6; margin-top: 4px;">{{ w.created_at[:16].replace('T', ', ') }}</div>
+                </div>
+            </div>
+
+            {% if w.status == 'pending' %}
+            <div style="margin-top: 12px; display: flex; gap: 8px;">
+                <form action="{{ url_for('mark_paid', wid=w.id, status=current_status) }}" method="POST" style="flex: 2;">
+                    <button type="submit" class="btn btn-primary" style="height: 42px; font-size: 0.85rem;">
+                        <i class="fa-solid fa-check"></i> Mark Paid
+                    </button>
+                </form>
+                <form action="{{ url_for('reject_withdrawal_route', wid=w.id, status=current_status) }}" method="POST" style="flex: 1;">
+                    <button type="submit" class="btn btn-danger" style="height: 42px;">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </form>
+            </div>
+            {% endif %}
+        </div>
+        {% else %}
+        <p style="text-align:center; padding:2rem; color:var(--text-secondary); font-style: italic;">No withdrawal requests.</p>
+        {% endfor %}
+    </div>
+</div>
+
+{% endblock %}

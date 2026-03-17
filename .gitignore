@@ -1,0 +1,10 @@
+.env
+database.db
+__pycache__/
+*.pyc
+.vscode/
+.idea/
+venv/
+env/
+ngrok.exe
+run_tma.py
