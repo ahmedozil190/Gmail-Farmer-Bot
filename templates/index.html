@@ -1,63 +1,60 @@
 {% extends "layout.html" %}
 
-{% block title %}Dashboard Overview{% endblock %}
+{% block title %}{{ strings.DASH_INDEX_TITLE }}{% endblock %}
 
 {% block content %}
-<div class="stats-grid">
+<!-- Users Section -->
+<h2 style="font-size: 1.1rem; color: var(--text-secondary); margin-bottom: 1rem;"><i class="fa-solid fa-users" style="margin-right: 8px;"></i>{{ strings.DASH_USERS_SECTION }}</h2>
+<div class="stats-grid" style="margin-bottom: 2rem;">
     <div class="glass-card stat-card blue">
-        <div class="stat-title">Total Users</div>
+        <div class="stat-title">{{ strings.DASH_TOTAL_USERS }}</div>
         <div class="stat-value">{{ total_users }}</div>
     </div>
-    
-    <div class="glass-card stat-card green">
-        <div class="stat-title">Approved Tasks</div>
-        <div class="stat-value">{{ approved_tasks }}</div>
-    </div>
-    
-    <div class="glass-card stat-card amber">
-        <div class="stat-title">Pending Tasks</div>
-        <div class="stat-value">{{ pending_tasks }}</div>
-    </div>
-    
-    <div class="glass-card stat-card purple">
-        <div class="stat-title">Total Paid</div>
-        <div class="stat-value">${{ "%.2f"|format(total_paid) }}</div>
-        <div style="font-size:0.75rem; color:#94a3b8; margin-top:5px;">Across {{ total_withdrawn_count }} withdrawals</div>
+    <div class="glass-card stat-card" style="background: rgba(239, 68, 68, 0.05);">
+        <div class="stat-title" style="color: var(--danger);">{{ strings.DASH_BANNED_USERS }}</div>
+        <div class="stat-value" style="color: var(--danger);">{{ banned_users }}</div>
     </div>
 </div>
 
-<div class="glass-card">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-        <h2 style="margin: 0; font-size: 1rem;">Recent Tasks</h2>
-        <a href="{{ url_for('tasks') }}" style="color: var(--accent-blue); text-decoration: none; font-size: 0.8rem; font-weight: 600;">See All</a>
+<!-- Tasks Section -->
+<h2 style="font-size: 1.1rem; color: var(--text-secondary); margin-bottom: 1rem;"><i class="fa-solid fa-envelope" style="margin-right: 8px;"></i>{{ strings.DASH_TASKS_SECTION }}</h2>
+<div class="stats-grid" style="grid-template-columns: 1fr 1fr; margin-bottom: 2rem;">
+    <div class="glass-card stat-card purple">
+        <div class="stat-title">{{ strings.DASH_TOTAL_TASKS }}</div>
+        <div class="stat-value">{{ total_tasks }}</div>
     </div>
-    
-    {% if recent_tasks %}
-    <div class="table-container">
-        {% for task in recent_tasks %}
-        <div class="list-item">
-            <div class="list-header">
-                <span class="list-title">{{ task.gmail_account }}</span>
-                {% if task.status == 'approved' %}
-                    <span class="badge approved">Approved</span>
-                {% elif task.status == 'rejected' %}
-                    <span class="badge rejected">Rejected</span>
-                {% else %}
-                    <span class="badge pending">Pending</span>
-                {% endif %}
-            </div>
-            <div class="list-meta">
-                <div style="display: flex; justify-content: space-between;">
-                    <span>ID: #{{ task.id }}</span>
-                    <span>{{ task.submitted_at[:16].replace('T', ', ') }}</span>
-                </div>
-                <div style="margin-top: 4px; font-family: monospace; color: var(--accent-blue);">{{ task.gmail_password }}</div>
-            </div>
-        </div>
-        {% endfor %}
+    <div class="glass-card stat-card green">
+        <div class="stat-title">{{ strings.DASH_APPROVED }}</div>
+        <div class="stat-value">{{ approved_tasks }}</div>
     </div>
-    {% else %}
-    <p style="color:var(--text-secondary); font-style:italic; text-align: center; padding: 1rem;">No tasks submitted yet.</p>
-    {% endif %}
+    <div class="glass-card stat-card amber">
+        <div class="stat-title">{{ strings.DASH_PENDING }}</div>
+        <div class="stat-value">{{ pending_tasks }}</div>
+    </div>
+    <div class="glass-card stat-card" style="background: rgba(239, 68, 68, 0.05);">
+        <div class="stat-title" style="color: var(--danger);">{{ strings.DASH_REJECTED }}</div>
+        <div class="stat-value" style="color: var(--danger);">{{ rejected_tasks }}</div>
+    </div>
+</div>
+
+<!-- Withdrawals Section -->
+<h2 style="font-size: 1.1rem; color: var(--text-secondary); margin-bottom: 1rem;"><i class="fa-solid fa-money-bill-transfer" style="margin-right: 8px;"></i>{{ strings.DASH_WITHDRAWALS_SECTION }}</h2>
+<div class="stats-grid" style="grid-template-columns: 1fr 1fr; margin-bottom: 1rem;">
+    <div class="glass-card stat-card blue">
+        <div class="stat-title">{{ strings.DASH_TOTAL_REQS }}</div>
+        <div class="stat-value">{{ total_withdrawals }}</div>
+    </div>
+    <div class="glass-card stat-card green">
+        <div class="stat-title">{{ strings.DASH_COMPLETED }}</div>
+        <div class="stat-value">{{ completed_withdrawals }}</div>
+    </div>
+    <div class="glass-card stat-card amber">
+        <div class="stat-title">{{ strings.DASH_PENDING }}</div>
+        <div class="stat-value">{{ pending_withdrawals }}</div>
+    </div>
+    <div class="glass-card stat-card" style="background: rgba(239, 68, 68, 0.05);">
+        <div class="stat-title" style="color: var(--danger);">{{ strings.DASH_REJECTED }}</div>
+        <div class="stat-value" style="color: var(--danger);">{{ rejected_withdrawals }}</div>
+    </div>
 </div>
 {% endblock %}

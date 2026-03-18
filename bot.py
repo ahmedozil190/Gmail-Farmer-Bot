@@ -1,10 +1,11 @@
 import logging
 import asyncio
-from telegram.ext import Application, CommandHandler, MessageHandler, filters
+import json
+from telegram.ext import Application, CommandHandler, MessageHandler, filters, CallbackQueryHandler
 
 from config import BOT_TOKEN
 from database import init_db
-from handlers.start import start_handler
+from handlers.start import start_handler, verify_sub_handler
 from handlers.tasks import tasks_conv_handler
 from handlers.wallet import balance_handler, history_handler, my_accounts_handler, unified_back_handler
 from handlers.support import support_handler, support_handler_fn
@@ -54,6 +55,7 @@ def main():
     app.add_handler(select_lang_handler)
     app.add_handler(support_handler)
     app.add_handler(unified_back_handler)
+    app.add_handler(CallbackQueryHandler(verify_sub_handler, pattern="^verify_sub$"))
 
     # ── Admin commands
     for handler in admin_handlers:
@@ -66,7 +68,35 @@ def main():
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
 
+    print("\n" + "="*40)
+    print("🚀 GMAIL BOT V3.0 - NEW LOGIC ACTIVE")
+    print("="*40 + "\n")
     logger.info("🚀 Bot is running…")
+    
+    # Set Menu Button for Mini App
+    from config import DASHBOARD_URL
+    dashboard_url = DASHBOARD_URL
+    if dashboard_url and "Add_In_DotEnv" not in dashboard_url:
+
+        import urllib.request
+        try:
+            menu_data = json.dumps({
+                "menu_button": {
+                    "type": "web_app",
+                    "text": "Open App",
+                    "web_app": {"url": f"{dashboard_url}/app/"}
+                }
+            }).encode("utf-8")
+            req = urllib.request.Request(
+                f"https://api.telegram.org/bot{BOT_TOKEN}/setChatMenuButton",
+                data=menu_data,
+                headers={"Content-Type": "application/json"}
+            )
+            with urllib.request.urlopen(req, timeout=5):
+                logger.info(f"✅ Menu button set to: {dashboard_url}/app/")
+        except Exception as e:
+            logger.warning(f"⚠️ Failed to set menu button: {e}")
+    
     app.run_polling(drop_pending_updates=True)
 
 

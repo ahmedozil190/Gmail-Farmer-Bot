@@ -1,0 +1,55 @@
+{% extends "app/layout.html" %}
+
+{% block content %}
+<div style="padding-top: 1.25rem;">
+    <h2 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 1rem;">{{ strings.TASKS_TITLE }}</h2>
+</div>
+
+<!-- Task Action -->
+<div class="glass-card" style="text-align: center;">
+    <div style="font-size: 2rem; margin-bottom: 8px;">📱</div>
+    <div style="font-weight: 700; margin-bottom: 4px;">{{ strings.TASKS_CREATE_GMAIL }}</div>
+    <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 1rem;">
+        {{ strings.TASKS_EARN|format(gmail_price|float)|safe }}
+    </div>
+    {% if buying_active %}
+    <a href="{{ url_for('app_task_start') }}" class="btn btn-primary">
+        <i class="fa-solid fa-plus"></i> {{ strings.TASKS_START }}
+    </a>
+    {% else %}
+    <div class="alert alert-warning" style="margin-bottom: 0;">
+        {{ strings.TASKS_PAUSED }}
+    </div>
+    {% endif %}
+</div>
+
+<!-- Task History -->
+<div class="card-title" style="margin-top: 0.5rem;">{{ strings.TASKS_HISTORY }}</div>
+
+{% if tasks %}
+{% for task in tasks %}
+<div class="list-item">
+    <div class="list-row">
+        <span style="font-size: 0.85rem; font-weight: 600;">{{ task.gmail_account }}</span>
+        <span class="badge {{ task.status }}">
+            {{ strings['STATUS_' + task.status.upper()] if ('STATUS_' + task.status.upper()) in strings else task.status }}
+        </span>
+    </div>
+    <div class="list-row" style="margin-top: 6px;">
+        <span class="list-label">{{ task.submitted_at[:10] if task.submitted_at else '' }}</span>
+        <span class="list-value">${{ "%.2f"|format(task.price or 0) }}</span>
+    </div>
+    {% if task.status == 'rejected' %}
+    <div style="margin-top: 6px; font-size: 0.75rem; color: var(--danger);">
+        💡 {{ strings.TASKS_REJECTED_HINT }}
+    </div>
+    {% endif %}
+</div>
+{% endfor %}
+{% else %}
+<div class="empty-state">
+    <i class="fa-solid fa-inbox"></i>
+    <p>{{ strings.TASKS_EMPTY|safe }}</p>
+</div>
+{% endif %}
+{% endblock %}

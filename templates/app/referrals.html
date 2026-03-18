@@ -1,0 +1,78 @@
+{% extends "app/layout.html" %}
+
+{% block content %}
+<div style="padding-top: 1.25rem;">
+    <h2 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 1rem;">{{ strings.REF_TITLE }}</h2>
+</div>
+
+<!-- Referral Link -->
+<div class="glass-card">
+    <div class="card-title">{{ strings.REF_LINK_TITLE }}</div>
+    <div class="ref-link-box">
+        <code id="refLink">{{ ref_link }}</code>
+        <button onclick="copyLink()" id="copyBtn">{{ strings.REF_COPY_BTN }}</button>
+    </div>
+    <div style="font-size: 0.8rem; color: var(--text-secondary);">
+        {{ strings.REF_BONUS_TEXT|format(ref_bonus|float)|safe }}
+    </div>
+</div>
+
+<!-- Stats -->
+<div class="stats-row">
+    <div class="mini-stat blue">
+        <div class="value">{{ invited }}</div>
+        <div class="label">{{ strings.REF_INVITED }}</div>
+    </div>
+    <div class="mini-stat green">
+        <div class="value">{{ active }}</div>
+        <div class="label">{{ strings.REF_ACTIVE }}</div>
+    </div>
+    <div class="mini-stat purple">
+        <div class="value">${{ "%.2f"|format(profit) }}</div>
+        <div class="label">{{ strings.REF_PROFIT }}</div>
+    </div>
+</div>
+
+<!-- Referral List -->
+<div class="card-title" style="margin-top: 0.5rem;">{{ strings.REF_LIST_TITLE }}</div>
+
+{% if referrals %}
+{% for ref in referrals %}
+<div class="list-item">
+    <div class="list-row">
+        <span style="font-weight: 600;">
+            {% if ref.username %}@{{ ref.username }}{% else %}{{ ref.full_name or 'User' }}{% endif %}
+        </span>
+        <span class="badge {% if ref.approved_tasks > 0 %}approved{% else %}pending{% endif %}">
+            {% if ref.approved_tasks > 0 %}{{ strings.REF_STATUS_ACTIVE }}{% else %}{{ strings.REF_STATUS_WAITING }}{% endif %}
+        </span>
+    </div>
+    <div class="list-row" style="margin-top: 4px;">
+        <span class="list-label">{{ ref.join_date[:10] if ref.join_date else '' }}</span>
+        <span class="list-label">{{ ref.approved_tasks }} tasks</span>
+    </div>
+</div>
+{% endfor %}
+{% else %}
+<div class="empty-state">
+    <i class="fa-solid fa-user-plus"></i>
+    <p>{{ strings.REF_EMPTY|safe }}</p>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+function copyLink() {
+    const link = document.getElementById('refLink').textContent;
+    navigator.clipboard.writeText(link).then(() => {
+        const btn = document.getElementById('copyBtn');
+        btn.textContent = '✓';
+        setTimeout(() => btn.textContent = 'Copy', 1500);
+        if (window.Telegram?.WebApp?.HapticFeedback) {
+            Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+        }
+    });
+}
+</script>
+{% endblock %}

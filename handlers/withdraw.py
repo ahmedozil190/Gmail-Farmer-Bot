@@ -18,7 +18,10 @@ from utils.currency import get_exchange_rate, format_currency_dual
 logger = logging.getLogger("bot")
 
 # States
-W_METHOD, W_AMOUNT, W_WALLET = range(3)
+W_METHOD, W_AMOUNT, W_WALLET, W_CONFIRM = range(4)
+
+CONFIRM_FILTER = filters.Regex(r"^(✅ تأكيد السحب|✅ Confirm Withdrawal)$")
+EDIT_FILTER    = filters.Regex(r"^(✏️ تعديل|✏️ Edit)$")
 
 CANCEL_FILTER  = filters.Regex(r"^(🔙 رجوع|🔙 Back)$")
 METHODS_FILTER = filters.Regex(r"^(💳 Vodafone Cash|🟡 Binance|🟢 USDT \(BEP20\)|💎 TRX \(TRC20\))$")
@@ -44,7 +47,7 @@ async def withdraw_entry(update: Update, context: ContextTypes.DEFAULT_TYPE):
         min_methods = conf["MIN_METHODS"]
         abs_min_usd = min(min_methods.values())
         
-        if balance < abs_min_usd:
+        if round(balance, 2) < round(abs_min_usd, 2):
             balance_info = format_currency_dual(balance, currency_pref, lang)
 
             context.user_data['parent_menu'] = 'balance'
@@ -89,7 +92,7 @@ async def receive_method(update: Update, context: ContextTypes.DEFAULT_TYPE):
     min_methods = conf["MIN_METHODS"]
     method_min_usd = min_methods.get(method, min_methods["DEFAULT"])
 
-    if balance < method_min_usd:
+    if round(balance, 2) < round(method_min_usd, 2):
         user_id = update.effective_user.id
         user_data = get_user(user_id)
         currency_pref = user_data['currency'] if user_data else 'USD'
@@ -171,6 +174,7 @@ async def receive_amount(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         label = s.get('LBL_WALLET_GENERIC', "عنوان المحفظة (Wallet Address)" if lang == 'ar' else "Wallet Address")
 
+    context.user_data["confirm_label"] = label
     await update.message.reply_text(
         s['WITHDRAW_WALLET_PROMPT'].format(label=label),
         reply_markup=cancel_keyboard(lang),
@@ -184,6 +188,51 @@ async def receive_wallet(update: Update, context: ContextTypes.DEFAULT_TYPE):
     method  = context.user_data.get("withdraw_method", "")
     lang    = context.user_data.get('lang', 'ar')
     s       = STRINGS.get(lang, STRINGS['ar'])
+    label   = context.user_data.get("confirm_label", "Address")
+
+    context.user_data["withdraw_wallet"] = wallet
+
+    # Show confirmation summary
+    summary = (
+        f"<b>{s.get('CONFIRM_TITLE', 'تأكيد طلب السحب')}</b>\n\n"
+        f"🔹 {s.get('CONFIRM_METHOD', 'الطريقة:')} <b>{method}</b>\n"
+        f"🔹 {s.get('CONFIRM_AMOUNT', 'المبلغ:')} <b>${amount:.2f}</b>\n"
+        f"🔹 {label}: <b><code>{wallet}</code></b>\n\n"
+        f"⚠️ يرجى التأكد من البيانات قبل التأكيد." if lang == 'ar' else
+        f"⚠️ Please verify details before confirming."
+    )
+
+    from telegram import ReplyKeyboardMarkup
+    confirm_kb = [
+        ["✅ تأكيد السحب" if lang == 'ar' else "✅ Confirm Withdrawal"],
+        ["✏️ تعديل" if lang == 'ar' else "✏️ Edit"]
+    ]
+    
+    await update.message.reply_text(
+        summary,
+        parse_mode="HTML",
+        reply_markup=ReplyKeyboardMarkup(confirm_kb, resize_keyboard=True)
+    )
+    return W_CONFIRM
+
+
+async def receive_confirm(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    text = update.message.text.strip()
+    lang = context.user_data.get('lang', 'ar')
+    s = STRINGS.get(lang, STRINGS['ar'])
+
+    if "Edit" in text or "تعديل" in text:
+        # Re-ask for method to allow full edit
+        await update.message.reply_text(
+            f"{s['WITHDRAW_METHOD_PROMPT']}",
+            reply_markup=payment_methods_keyboard(lang),
+        )
+        return W_METHOD
+
+    # Proceed with submission
+    amount  = context.user_data.get("withdraw_amount", 0)
+    method  = context.user_data.get("withdraw_method", "")
+    wallet  = context.user_data.get("withdraw_wallet", "")
     user    = update.effective_user
 
     wid = add_withdrawal(user.id, amount, method, wallet)
@@ -213,9 +262,9 @@ async def receive_wallet(update: Update, context: ContextTypes.DEFAULT_TYPE):
     amount_text = format_currency_dual(amount, a_currency, a_lang)
     
     withdraw_text = a_s['ADMIN_NOTIFY_WITHDRAW'].format(
+        source="Bot",
         wid=wid, user_name=username, user_id=user.id,
-        amount_text=amount_text, method=method, wallet=wallet,
-        u_lang=lang
+        amount_text=amount_text, method=method, wallet=wallet
     )
 
     await context.bot.send_message(chat_id=ADMIN_ID, text=withdraw_text, parse_mode="HTML")
@@ -254,9 +303,10 @@ async def cancel_withdraw(update: Update, context: ContextTypes.DEFAULT_TYPE):
 withdraw_conv_handler = ConversationHandler(
     entry_points=[MessageHandler(filters.Regex(r"سحب|Payout"), withdraw_entry)],
     states={
-        W_METHOD: [MessageHandler(METHODS_FILTER,                     receive_method)],
-        W_AMOUNT: [MessageHandler(filters.TEXT & ~CANCEL_FILTER,       receive_amount)],
-        W_WALLET: [MessageHandler(filters.TEXT & ~CANCEL_FILTER,       receive_wallet)],
+        W_METHOD:  [MessageHandler(METHODS_FILTER,                     receive_method)],
+        W_AMOUNT:  [MessageHandler(filters.TEXT & ~CANCEL_FILTER,       receive_amount)],
+        W_WALLET:  [MessageHandler(filters.TEXT & ~CANCEL_FILTER,       receive_wallet)],
+        W_CONFIRM: [MessageHandler(filters.TEXT & ~CANCEL_FILTER,       receive_confirm)],
     },
     fallbacks=[
         MessageHandler(CANCEL_FILTER, cancel_withdraw),

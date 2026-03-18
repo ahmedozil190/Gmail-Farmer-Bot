@@ -7,16 +7,24 @@ import json
 import urllib.request
 from telegram import Bot
 import database
-from config import GMAIL_PRICE, REFERRAL_BONUS, MIN_WITHDRAW, BOT_TOKEN, MIN_WITHDRAW_METHODS_USD
+from config import GMAIL_PRICE, REFERRAL_BONUS, MIN_WITHDRAW, BOT_TOKEN, MIN_WITHDRAW_METHODS_USD, ADMIN_ID, EMAILS_CHANNEL_ID, WITHDRAWALS_CHANNEL_ID
+from strings import STRINGS
+from utils.currency import format_currency_dual
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
 
+@app.errorhandler(Exception)
+def handle_exception(e):
+    with open("crash.log", "a", encoding="utf-8") as f:
+        f.write(f"GLOBAL 500 ERROR: {traceback.format_exc()}\n")
+    return "Internal Server Error - Check crash.log", 500
+
 # Auth configuration
 def check_auth(username, password):
-    user = os.getenv("DASHBOARD_USER", "admin")
-    pwd  = os.getenv("DASHBOARD_PASS", "admin1234")
-    return username == user and password == pwd
+    from config import DASHBOARD_USER, DASHBOARD_PASS
+    return username == DASHBOARD_USER and password == DASHBOARD_PASS
+
 
 def requires_auth(f):
     @wraps(f)
@@ -35,7 +43,10 @@ def login():
         password = request.form.get('password')
         if check_auth(username, password):
             session['logged_in'] = True
-            flash('Successfully logged in.', 'success')
+            import database
+            from strings import DASHBOARD_STRINGS
+            lang = database.get_business_config().get("DASHBOARD_LANG", "ar")
+            flash(DASHBOARD_STRINGS.get(lang, DASHBOARD_STRINGS["ar"])['ALERT_LOGIN_SUCCESS'], 'success')
             next_url = request.args.get('next')
             return redirect(next_url or url_for('index'))
         else:
@@ -50,14 +61,22 @@ def logout():
 
 # ── Context Processors ───────────────────────────────────────────────────────
 @app.context_processor
-def inject_stats():
+def inject_globals():
+    from strings import DASHBOARD_STRINGS
+    conf = database.get_business_config()
+    lang = conf.get("DASHBOARD_LANG", "ar")
+    strings = DASHBOARD_STRINGS.get(lang, DASHBOARD_STRINGS["ar"])
+
     # Pass basic stats to all templates (for sidebar etc if needed)
     total_users, approved, pending, paid = database.get_stats()
     # Also pending withdrawals
     w_pending = len(database.get_pending_withdrawals())
     return dict(
         stats_pending_tasks=pending,
-        stats_pending_withdrawals=w_pending
+        stats_pending_withdrawals=w_pending,
+        strings=strings,
+        dash_lang=lang,
+        config=conf
     )
 
 
@@ -66,44 +85,77 @@ def inject_stats():
 @app.route("/")
 @requires_auth
 def index():
-    total_users, approved, pending, paid = database.get_stats()
     con = database._conn()
-    total_withdrawn_count = con.execute("SELECT COUNT(*) as c FROM withdrawals WHERE status='completed'").fetchone()["c"]
-    recent_tasks = con.execute("SELECT * FROM submissions ORDER BY submitted_at DESC LIMIT 5").fetchall()
+    
+    # User Stats
+    total_users = con.execute("SELECT COUNT(*) FROM users").fetchone()[0]
+    banned_users = con.execute("SELECT COUNT(*) FROM users WHERE status = 'banned'").fetchone()[0]
+    
+    # Task Stats
+    total_tasks = con.execute("SELECT COUNT(*) FROM submissions").fetchone()[0]
+    approved_tasks = con.execute("SELECT COUNT(*) FROM submissions WHERE status = 'approved'").fetchone()[0]
+    pending_tasks = con.execute("SELECT COUNT(*) FROM submissions WHERE status = 'pending'").fetchone()[0]
+    rejected_tasks = con.execute("SELECT COUNT(*) FROM submissions WHERE status = 'rejected'").fetchone()[0]
+    
+    # Withdrawal Stats
+    total_withdrawals = con.execute("SELECT COUNT(*) FROM withdrawals").fetchone()[0]
+    completed_withdrawals = con.execute("SELECT COUNT(*) FROM withdrawals WHERE status = 'completed'").fetchone()[0]
+    pending_withdrawals = con.execute("SELECT COUNT(*) FROM withdrawals WHERE status = 'pending'").fetchone()[0]
+    rejected_withdrawals = con.execute("SELECT COUNT(*) FROM withdrawals WHERE status = 'rejected'").fetchone()[0]
+    
     con.close()
     
     return render_template("index.html", 
                            total_users=total_users, 
-                           approved_tasks=approved, 
-                           pending_tasks=pending, 
-                           total_paid=paid,
-                           total_withdrawn_count=total_withdrawn_count,
-                           recent_tasks=recent_tasks)
+                           banned_users=banned_users,
+                           total_tasks=total_tasks,
+                           approved_tasks=approved_tasks, 
+                           pending_tasks=pending_tasks, 
+                           rejected_tasks=rejected_tasks,
+                           total_withdrawals=total_withdrawals,
+                           completed_withdrawals=completed_withdrawals,
+                           pending_withdrawals=pending_withdrawals,
+                           rejected_withdrawals=rejected_withdrawals)
 
 @app.route("/users")
 @requires_auth
 def users():
     search = request.args.get("q", "").strip()
-    con = database._conn()
+    page = request.args.get("page", 1, type=int)
+    per_page = 20
+    offset = (page - 1) * per_page
     
+    con = database._conn()
     query = """
-        SELECT 
-            u.*,
-            (SELECT COALESCE(SUM(amount), 0) FROM withdrawals w WHERE w.user_id = u.user_id AND w.status = 'completed') as total_withdrawn,
-            (SELECT COUNT(*) FROM submissions s WHERE s.user_id = u.user_id AND s.status = 'approved') as approved_count,
-            (SELECT COUNT(*) FROM submissions s WHERE s.user_id = u.user_id AND s.status = 'rejected') as rejected_count
+        SELECT u.*, 
+        (SELECT COUNT(*) FROM withdrawals WHERE user_id = u.user_id AND status = 'completed') as paid_count,
+        (SELECT COUNT(*) FROM submissions WHERE user_id = u.user_id AND status = 'approved') as approved_count,
+        (SELECT COUNT(*) FROM submissions WHERE user_id = u.user_id AND status = 'rejected') as rejected_count
         FROM users u
     """
-    
+    params = []
+    where_clause = ""
     if search:
-        query += " WHERE u.username LIKE ? OR u.full_name LIKE ? OR CAST(u.user_id AS TEXT) LIKE ?"
-        search_term = f"%{search}%"
-        users_list = con.execute(query + " ORDER BY u.join_date DESC", (search_term, search_term, search_term)).fetchall()
-    else:
-        users_list = con.execute(query + " ORDER BY u.join_date DESC").fetchall()
+        where_clause = " WHERE u.full_name LIKE ? OR u.username LIKE ? OR CAST(u.user_id AS TEXT) LIKE ?"
+        params = [f"%{search}%", f"%{search}%", f"%{search}%"]
         
+    # Stats
+    total_count = con.execute("SELECT COUNT(*) FROM users" + (where_clause if search else ""), params).fetchone()[0]
+    total_pages = (total_count + per_page - 1) // per_page
+    
+    banned_count = con.execute("SELECT COUNT(*) FROM users WHERE status = 'banned'").fetchone()[0]
+    stats = {'total': total_count, 'banned': banned_count}
+    
+    users_list = con.execute(query + where_clause + " ORDER BY u.join_date DESC LIMIT ? OFFSET ?", params + [per_page, offset]).fetchall()
     con.close()
-    return render_template("users.html", users=users_list, search_query=search)
+    
+    return render_template("users.html", 
+                           users=users_list, 
+                           search_query=search,
+                           page=page,
+                           total_pages=total_pages,
+                           total_count=total_count,
+                           stats=stats)
 
 @app.route("/users/status/<int:user_id>", methods=["POST"])
 @requires_auth
@@ -112,7 +164,7 @@ def user_status(user_id):
     if new_status in ["active", "banned"]:
         database.set_user_status(user_id, new_status)
         flash(f"User #{user_id} status updated to {new_status}.", "success")
-    return redirect(url_for("users", q=request.args.get("q", "")))
+    return redirect(url_for("users", q=request.args.get("q", ""), page=request.args.get("page", 1)))
 
 @app.route("/users/balance/<int:user_id>", methods=["POST"])
 @requires_auth
@@ -128,37 +180,181 @@ def user_balance(user_id):
             flash(f"Removed ${amount:.2f} from User #{user_id}.", "success")
     except ValueError:
         flash("Invalid amount entered.", "danger")
-    return redirect(url_for("users", q=request.args.get("q", "")))
+    return redirect(url_for("users", q=request.args.get("q", ""), page=request.args.get("page", 1)))
 
 @app.route("/tasks")
 @requires_auth
 def tasks():
+    status_filter = request.args.get("status", "all")
+    user_search = request.args.get("user_id", "").strip()
+    date_filter = request.args.get("date", "")
+    page = request.args.get("page", 1, type=int)
+    per_page = 20
+    offset = (page - 1) * per_page
+    
+    import datetime
+    now = datetime.datetime.now()
+    d1 = (now - datetime.timedelta(days=1)).strftime('%Y-%m-%d %H:%M:%S')
+    d2 = (now - datetime.timedelta(days=2)).strftime('%Y-%m-%d %H:%M:%S')
+    d3 = (now - datetime.timedelta(days=3)).strftime('%Y-%m-%d %H:%M:%S')
+
     con = database._conn()
-    tasks_list = con.execute("SELECT * FROM submissions ORDER BY submitted_at DESC").fetchall()
+    base_query = " FROM submissions WHERE 1=1"
+    params = []
+    
+    if status_filter == "1d":
+        base_query += " AND status = 'pending' AND submitted_at <= ? AND submitted_at > ?"
+        params.extend([d1, d2])
+    elif status_filter == "2d":
+        base_query += " AND status = 'pending' AND submitted_at <= ? AND submitted_at > ?"
+        params.extend([d2, d3])
+    elif status_filter in ["3d", "ready"]:
+        base_query += " AND status = 'pending' AND submitted_at <= ?"
+        params.append(d3)
+    elif status_filter != "all":
+        base_query += " AND status = ?"
+        params.append(status_filter)
+        
+    if user_search:
+        base_query += " AND CAST(user_id AS TEXT) LIKE ?"
+        params.append(f"%{user_search}%")
+        
+    if date_filter:
+        base_query += " AND submitted_at LIKE ?"
+        params.append(f"{date_filter}%")
+        
+    # Stats
+    total_count = con.execute("SELECT COUNT(*)" + base_query, params).fetchone()[0]
+    total_pages = (total_count + per_page - 1) // per_page
+    
+    # Global stats for tabs
+    stats_query = "SELECT status, COUNT(*) FROM submissions WHERE 1=1"
+    stats_params = []
+    if user_search:
+        stats_query += " AND CAST(user_id AS TEXT) LIKE ?"
+        stats_params.append(f"%{user_search}%")
+    if date_filter:
+        stats_query += " AND submitted_at LIKE ?"
+        stats_params.append(f"{date_filter}%")
+    stats_query += " GROUP BY status"
+    raw_stats = con.execute(stats_query, stats_params).fetchall()
+    stats = {row[0]: row[1] for row in raw_stats}
+    stats['total'] = sum(stats.values())
+    
+    # Ready/Age stats (Buckets)
+    def get_count(q_filter, p_filter):
+        q = f"SELECT COUNT(*) FROM submissions WHERE status = 'pending' AND {q_filter}"
+        p = list(p_filter)
+        if user_search:
+            q += " AND CAST(user_id AS TEXT) LIKE ?"
+            p.append(f"%{user_search}%")
+        if date_filter:
+            q += " AND submitted_at LIKE ?"
+            p.append(f"{date_filter}%")
+        return con.execute(q, p).fetchone()[0]
+
+    stats['1d'] = get_count("submitted_at <= ? AND submitted_at > ?", (d1, d2))
+    stats['2d'] = get_count("submitted_at <= ? AND submitted_at > ?", (d2, d3))
+    stats['3d'] = get_count("submitted_at <= ?", (d3,))
+    stats['ready'] = stats['3d']
+        
+    query = "SELECT *" + base_query + " ORDER BY submitted_at DESC LIMIT ? OFFSET ?"
+    tasks_list = con.execute(query, params + [per_page, offset]).fetchall()
     con.close()
-    return render_template("tasks.html", tasks=tasks_list)
+    
+    import datetime
+    now = datetime.datetime.now()
+    three_days_ago = now - datetime.timedelta(days=3)
+    
+    # Process tasks to add 'is_ready' flag
+    processed_tasks = []
+    for t in tasks_list:
+        # Convert row to dict for easier manipulation
+        task_dict = dict(t)
+        try:
+            # Assuming submitted_at is row[index] or accessible via keys
+            submitted_at = datetime.datetime.strptime(task_dict['submitted_at'], '%Y-%m-%d %H:%M:%S')
+            task_dict['is_ready'] = task_dict['status'] == 'pending' and submitted_at <= three_days_ago
+            
+            # Simple "days ago" logic
+            diff = now - submitted_at
+            if diff.days >= 1:
+                task_dict['age_text'] = f"{diff.days}d ago"
+            else:
+                task_dict['age_text'] = "Today"
+        except:
+            task_dict['is_ready'] = False
+            task_dict['age_text'] = "N/A"
+        processed_tasks.append(task_dict)
+        
+    return render_template("tasks.html", 
+                           tasks=processed_tasks,
+                           current_status=status_filter,
+                           search_user=user_search,
+                           d_date=date_filter,
+                           page=page,
+                           total_pages=total_pages,
+                           total_count=total_count,
+                           stats=stats)
 
 @app.route("/tasks/<action>/<int:task_id>", methods=["POST"])
 @requires_auth
 def handle_task(action, task_id):
+    from strings import STRINGS
+    from utils.currency import format_currency_dual
+
     if action == "approve":
         result = database.approve_submission(task_id)
         if result:
             flash(f"Task #{task_id} approved successfully.", "success")
-            # Note: GUI approval happens here, but notifying the user requires hitting the Telegram API.
-            # For a pure DB architecture, we would ideally enqueue a message for the bot to send,
-            # but for MVP, we just approve it in DB. The user sees it in their balance.
+            # Send notification to user
+            try:
+                user = database.get_user(result["user_id"])
+                lang = user["language"] if user and user["language"] in STRINGS else "ar"
+                currency_pref = user["currency"] if user else "USD"
+                reward = result["price"] if "price" in result else GMAIL_PRICE
+                price_text = format_currency_dual(reward, currency_pref, lang)
+                msg = STRINGS[lang]["TASK_APPROVED"].format(
+                    gmail=result["gmail_account"],
+                    price=price_text
+                )
+                url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
+                data = json.dumps({"chat_id": result["user_id"], "text": msg, "parse_mode": "HTML"}).encode('utf-8')
+                req = urllib.request.Request(url, data=data, headers={'Content-Type': 'application/json'})
+                with urllib.request.urlopen(req, timeout=5) as response:
+                    pass
+            except Exception as e:
+                with open("crash.log", "a", encoding="utf-8") as f:
+                    f.write(f"Task approve notification error: {str(e)}\n")
         else:
             flash(f"Failed to approve Task #{task_id}.", "danger")
     elif action == "reject":
-        reason = request.form.get("reason", "Not specified")
-        result = database.reject_submission(task_id, reason)
+        result = database.reject_submission(task_id, "")
         if result:
             flash(f"Task #{task_id} rejected.", "warning")
+            # Send notification to user
+            try:
+                user = database.get_user(result["user_id"])
+                lang = user["language"] if user and user["language"] in STRINGS else "ar"
+                msg = STRINGS[lang]["TASK_REJECTED"].format(
+                    gmail=result["gmail_account"]
+                )
+                url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
+                data = json.dumps({"chat_id": result["user_id"], "text": msg, "parse_mode": "HTML"}).encode('utf-8')
+                req = urllib.request.Request(url, data=data, headers={'Content-Type': 'application/json'})
+                with urllib.request.urlopen(req, timeout=5) as response:
+                    pass
+            except Exception as e:
+                with open("crash.log", "a", encoding="utf-8") as f:
+                    f.write(f"Task reject notification error: {str(e)}\n")
         else:
             flash(f"Failed to reject Task #{task_id}.", "danger")
             
-    return redirect(url_for("tasks"))
+    return redirect(url_for("tasks", 
+                           status=request.args.get("status", "all"),
+                           user_id=request.args.get("user_id", ""),
+                           date=request.args.get("date", ""),
+                           page=request.args.get("page", 1)))
 
 @app.route("/withdrawals")
 @requires_auth
@@ -166,33 +362,57 @@ def withdrawals():
     status_filter = request.args.get("status", "all")
     user_search = request.args.get("user_id", "").strip()
     date_filter = request.args.get("date", "")
+    page = request.args.get("page", 1, type=int)
+    per_page = 20
+    offset = (page - 1) * per_page
     
     con = database._conn()
-    query = "SELECT * FROM withdrawals WHERE 1=1"
+    base_query = " FROM withdrawals WHERE 1=1"
     params = []
     
     if status_filter != "all":
-        query += " AND status = ?"
+        base_query += " AND status = ?"
         params.append(status_filter)
         
     if user_search:
-        query += " AND CAST(user_id AS TEXT) LIKE ?"
+        base_query += " AND CAST(user_id AS TEXT) LIKE ?"
         params.append(f"%{user_search}%")
         
     if date_filter:
-        query += " AND created_at LIKE ?"
+        base_query += " AND created_at LIKE ?"
         params.append(f"{date_filter}%")
         
-    query += " ORDER BY created_at DESC"
+    # Stats
+    total_count = con.execute("SELECT COUNT(*)" + base_query, params).fetchone()[0]
+    total_pages = (total_count + per_page - 1) // per_page
     
-    w_list = con.execute(query, params).fetchall()
+    # Global stats for tabs
+    stats_query = "SELECT status, COUNT(*) FROM withdrawals WHERE 1=1"
+    stats_params = []
+    if user_search:
+        stats_query += " AND CAST(user_id AS TEXT) LIKE ?"
+        stats_params.append(f"%{user_search}%")
+    if date_filter:
+        stats_query += " AND created_at LIKE ?"
+        stats_params.append(f"{date_filter}%")
+    stats_query += " GROUP BY status"
+    raw_stats = con.execute(stats_query, stats_params).fetchall()
+    stats = {row[0]: row[1] for row in raw_stats}
+    stats['total'] = sum(stats.values())
+        
+    query = "SELECT *" + base_query + " ORDER BY created_at DESC LIMIT ? OFFSET ?"
+    w_list = con.execute(query, params + [per_page, offset]).fetchall()
     con.close()
     
     return render_template("withdrawals.html", 
                            withdrawals=w_list, 
                            current_status=status_filter,
                            search_user=user_search,
-                           d_date=date_filter)
+                           d_date=date_filter,
+                           page=page,
+                           total_pages=total_pages,
+                           total_count=total_count,
+                           stats=stats)
 
 @app.route("/withdrawals/paid/<int:wid>", methods=["POST"])
 @requires_auth
@@ -282,11 +502,6 @@ def reject_withdrawal_route(wid):
 @requires_auth
 def settings():
     if request.method == "POST":
-        # In a real app writing to .env programmatically is tricky.
-        # For this MVP, we will flash a message that it needs to be changed in config.py / .env.
-        # Or we can write a simple regex replacement for the .env file.
-        flash("Editing .env settings from GUI requires write permissions. Please restart the bot after saving.", "info")
-        
         # Updated .env file directly (handled keys)
         form_data = request.form
         env_updates = {
@@ -296,6 +511,9 @@ def settings():
             "MIN_WITHDRAW_BINANCE": form_data.get("min_binance"),
             "MIN_WITHDRAW_USDT": form_data.get("min_usdt"),
             "MIN_WITHDRAW_TRX": form_data.get("min_trx"),
+            "BUYING_ACTIVE": form_data.get("buying_active", "0"),
+            "DASHBOARD_LANG": form_data.get("dash_lang", "ar"),
+            "REQUIRED_CHANNELS": form_data.get("required_channels", ""),
         }
         
         # Update Database settings (Instant)
@@ -305,8 +523,13 @@ def settings():
         database.set_setting("MIN_WITHDRAW_BINANCE", env_updates["MIN_WITHDRAW_BINANCE"])
         database.set_setting("MIN_WITHDRAW_USDT", env_updates["MIN_WITHDRAW_USDT"])
         database.set_setting("MIN_WITHDRAW_TRX", env_updates["MIN_WITHDRAW_TRX"])
+        database.set_setting("BUYING_ACTIVE", env_updates["BUYING_ACTIVE"])
+        database.set_setting("DASHBOARD_LANG", env_updates["DASHBOARD_LANG"])
+        database.set_setting("REQUIRED_CHANNELS", env_updates["REQUIRED_CHANNELS"])
 
-        flash("Settings updated successfully! Changes are now active for the bot.", "success")
+        from strings import DASHBOARD_STRINGS
+        lang = env_updates["DASHBOARD_LANG"]
+        flash(DASHBOARD_STRINGS.get(lang, DASHBOARD_STRINGS["ar"])['ALERT_SETTINGS_SAVED'], "success")
         return redirect(url_for("settings"))
 
     conf = database.get_business_config()
@@ -316,15 +539,29 @@ def settings():
                            min_voda=conf["MIN_METHODS"]["💳 Vodafone Cash"],
                            min_binance=conf["MIN_METHODS"]["🟡 Binance"],
                            min_usdt=conf["MIN_METHODS"]["🟢 USDT (BEP20)"],
-                           min_trx=conf["MIN_METHODS"]["💎 TRX (TRC20)"])
+                           min_trx=conf["MIN_METHODS"]["💎 TRX (TRC20)"],
+                           buying_active=conf["BUYING_ACTIVE"],
+                           required_channels=conf["REQUIRED_CHANNELS"])
 
 @app.route("/broadcast", methods=["GET", "POST"])
 @requires_auth
 def broadcast():
     if request.method == "POST":
         message_text = request.form.get("message")
+        target_user_id = request.form.get("user_id", "").strip()
+        
         if message_text:
-            user_ids = database.get_all_user_ids()
+            if target_user_id:
+                # Send to specific user
+                try:
+                    user_ids = [int(target_user_id)]
+                except ValueError:
+                    flash("Invalid User ID format.", "danger")
+                    return redirect(url_for("broadcast"))
+            else:
+                # Broadcast to all
+                user_ids = database.get_all_user_ids()
+                
             success_count = 0
             fail_count = 0
             
@@ -338,11 +575,398 @@ def broadcast():
                     except Exception as e:
                         print(f"Failed to send to {uid}: {e}")
                         fail_count += 1
-            
+                        
             asyncio.run(send_broadcast())
-            flash(f"Broadcast completed. Sent: {success_count}, Failed: {fail_count}", "info")
+            
+            if target_user_id:
+                if success_count > 0:
+                    flash(f"Message sent successfully to User {target_user_id}.", "success")
+                else:
+                    flash(f"Failed to send message to User {target_user_id}. They may have blocked the bot.", "danger")
+            else:
+                flash(f"Broadcast completed. Sent: {success_count}, Failed: {fail_count}", "info")
+                
         return redirect(url_for("broadcast"))
     return render_template("broadcast.html")
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# ██  USER MINI APP ROUTES  ██
+# ══════════════════════════════════════════════════════════════════════════════
+
+import hashlib
+import hmac
+from urllib.parse import parse_qs, unquote
+
+def validate_telegram_data(init_data: str) -> dict | None:
+    """Validate Telegram WebApp initData using HMAC-SHA256."""
+    try:
+        with open("crash.log", "a", encoding="utf-8") as f:
+            f.write(f"Validating initData: {init_data[:100]}...\n")
+        parsed = dict(parse_qs(init_data, keep_blank_values=True))
+        # Flatten single-value lists
+        parsed = {k: v[0] if len(v) == 1 else v for k, v in parsed.items()}
+
+        received_hash = parsed.pop("hash", None)
+        if not received_hash:
+            return None
+
+        # Build data-check-string
+        data_check = "\n".join(
+            f"{k}={parsed[k]}" for k in sorted(parsed.keys())
+        )
+
+        secret_key = hmac.new(b"WebAppData", BOT_TOKEN.encode(), hashlib.sha256).digest()
+        calculated_hash = hmac.new(secret_key, data_check.encode(), hashlib.sha256).hexdigest()
+
+        if calculated_hash != received_hash:
+            with open("crash.log", "a", encoding="utf-8") as f:
+                f.write(f"HMAC Mismatch!\nData Checklist:\n{data_check}\nCalc: {calculated_hash}\nRecv: {received_hash}\n")
+            return None
+
+        # Parse user JSON
+        user_data = json.loads(parsed.get("user", "{}"))
+        return user_data
+    except Exception as e:
+        with open("crash.log", "a", encoding="utf-8") as f:
+            f.write(f"HMAC Validation Error: {str(e)}\n")
+        return None
+
+
+def get_webapp_user():
+    """Get user from initData, perform auto-registration, and detect language."""
+    try:
+        from strings import WEBAPP_STRINGS
+        init_data = request.args.get("initData") or request.headers.get("X-InitData", "")
+        
+        tg_user = None
+        if init_data:
+            tg_user = validate_telegram_data(init_data)
+            if tg_user:
+                session["tg_user_id"] = tg_user["id"]
+        
+        user_id = session.get("tg_user_id")
+        if not user_id and not tg_user:
+            return None, None
+
+        if tg_user:
+            user_id = tg_user["id"]
+
+        # Check database and perform auto-registration
+        user = database.get_user(user_id)
+        if not user and tg_user:
+            # Auto-register
+            full_name = tg_user.get("first_name", "")
+            if tg_user.get("last_name"):
+                full_name += f" {tg_user['last_name']}"
+            username = tg_user.get("username")
+            database.create_user(user_id, username, full_name)
+            user = database.get_user(user_id)
+            # Use Telegram language as default if available
+            lang = tg_user.get("language_code", "ar")
+            if lang not in ("ar", "en"): lang = "ar"
+            database.update_user_language(user_id, lang)
+        
+        if not user:
+            return None, None
+
+        # sqlite3.Row does not have a .get method, convert to dict first
+        user_dict = dict(user)
+        lang = user_dict.get("language", "ar")
+        if lang not in WEBAPP_STRINGS: lang = "ar"
+        
+        return user_dict, WEBAPP_STRINGS[lang]
+    except Exception as e:
+        print(f"get_webapp_user CRASH: {traceback.format_exc()}")
+        return None, None
+        with open("crash.log", "a", encoding="utf-8") as f:
+            f.write(f"get_webapp_user CRASH: {traceback.format_exc()}\n")
+        return None, None
+
+
+@app.route("/app/")
+def app_home():
+    try:
+        user, strings = get_webapp_user()
+        if not user:
+            return render_template("app/error.html", user=None, strings=None), 403
+
+        user_id = user["user_id"]
+        balance = user["balance"]
+        pending = user["pending_balance"]
+
+        # Task stats
+        con = database._conn()
+        approved_tasks = con.execute(
+            "SELECT COUNT(*) FROM submissions WHERE user_id = ? AND status = 'approved'", (user_id,)
+        ).fetchone()[0]
+        pending_tasks = con.execute(
+            "SELECT COUNT(*) FROM submissions WHERE user_id = ? AND status = 'pending'", (user_id,)
+        ).fetchone()[0]
+        rejected_tasks = con.execute(
+            "SELECT COUNT(*) FROM submissions WHERE user_id = ? AND status = 'rejected'", (user_id,)
+        ).fetchone()[0]
+        recent = con.execute(
+            "SELECT * FROM submissions WHERE user_id = ? ORDER BY submitted_at DESC LIMIT 5", (user_id,)
+        ).fetchall()
+        con.close()
+
+        return render_template("app/home.html",
+            page="home",
+            user=user,
+            strings=strings,
+            balance=balance,
+            pending=pending,
+            approved_tasks=approved_tasks,
+            pending_tasks=pending_tasks,
+            rejected_tasks=rejected_tasks,
+            recent_tasks=recent
+        )
+    except Exception as e:
+        return f"<pre>Error Route /app/:\n{traceback.format_exc()}</pre>", 500
+
+
+@app.route("/app/tasks")
+def app_tasks():
+    user, strings = get_webapp_user()
+    if not user:
+        return redirect(url_for("app_home"))
+
+    user_id = user["user_id"]
+    tasks = database.get_user_submissions(user_id)
+    conf = database.get_business_config()
+
+    return render_template("app/tasks.html",
+        page="tasks",
+        user=user,
+        strings=strings,
+        tasks=tasks,
+        gmail_price=conf["GMAIL_PRICE"],
+        buying_active=conf["BUYING_ACTIVE"]
+    )
+
+
+@app.route("/app/tasks/start")
+def app_task_start():
+    user, strings = get_webapp_user()
+    if not user:
+        return redirect(url_for("app_home"))
+    return render_template("app/task_start.html", page="tasks", user=user, strings=strings)
+
+
+@app.route("/app/tasks/submit", methods=["POST"])
+def app_task_submit():
+    user, strings = get_webapp_user()
+    if not user:
+        return redirect(url_for("app_home"))
+
+    user_id = user["user_id"]
+    gmail = request.form.get("gmail", "").strip()
+
+    if not gmail or "@" not in gmail:
+        flash(strings.get("FLASH_INVALID_GMAIL", "Invalid Gmail"), "danger")
+        return redirect(url_for("app_task_start"))
+
+    # Check if already submitted
+    if database.is_gmail_already_submitted(gmail):
+        flash(strings.get("FLASH_ALREADY_SUBMITTED", "Already submitted"), "warning")
+        return redirect(url_for("app_tasks"))
+
+    conf = database.get_business_config()
+    password = "Aa612003@"
+    sub_id = database.add_submission(user_id, gmail, password)
+
+    # Notify admin
+    try:
+        username = f"@{user.get('username')}" if user.get('username') else user.get('full_name', 'Unknown')
+        
+        # Get admin language
+        admin_user = database.get_user(ADMIN_ID)
+        a_lang = admin_user['language'] if admin_user else 'ar'
+        a_s = STRINGS.get(a_lang, STRINGS['ar'])
+        
+        admin_msg = a_s['ADMIN_NOTIFY_GMAIL'].format(
+            source="Panel",
+            user_name=username, user_id=user_id,
+            gmail=gmail, pwd=password, sub_id=sub_id
+        )
+        
+        url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
+        data = json.dumps({"chat_id": ADMIN_ID, "text": admin_msg, "parse_mode": "HTML"}).encode('utf-8')
+        req = urllib.request.Request(url, data=data, headers={'Content-Type': 'application/json'})
+        with urllib.request.urlopen(req, timeout=5):
+            pass
+            
+        # Also to channel
+        try:
+            data2 = json.dumps({"chat_id": EMAILS_CHANNEL_ID, "text": admin_msg, "parse_mode": "HTML"}).encode('utf-8')
+            req2 = urllib.request.Request(url, data=data2, headers={'Content-Type': 'application/json'})
+            with urllib.request.urlopen(req2, timeout=5):
+                pass
+        except Exception:
+            pass
+    except Exception as e:
+        with open("crash.log", "a", encoding="utf-8") as f:
+            f.write(f"WebApp task notification error: {str(e)}\n")
+
+    flash(strings.get("FLASH_TASK_SUCCESS", "Task submitted!"), "success")
+    return redirect(url_for("app_tasks"))
+
+
+@app.route("/app/wallet")
+def app_wallet():
+    user, strings = get_webapp_user()
+    if not user:
+        return redirect(url_for("app_home"))
+
+    user_id = user["user_id"]
+    balance = user["balance"]
+    pending = user["pending_balance"]
+
+    conf = database.get_business_config()
+    min_methods = conf["MIN_METHODS"]
+    min_withdraw = min(min_methods.values())
+
+    # Get withdrawals
+    con = database._conn()
+    withdrawals = con.execute(
+        "SELECT * FROM withdrawals WHERE user_id = ? ORDER BY created_at DESC", (user_id,)
+    ).fetchall()
+    con.close()
+
+    from config import PAYMENT_METHODS
+
+    return render_template("app/wallet.html",
+        page="wallet",
+        user=user,
+        strings=strings,
+        balance=balance,
+        pending=pending,
+        min_withdraw=min_withdraw,
+        methods=PAYMENT_METHODS,
+        min_methods=min_methods,
+        withdrawals=withdrawals
+    )
+
+
+@app.route("/app/withdraw", methods=["POST"])
+def app_withdraw():
+    user, strings = get_webapp_user()
+    if not user:
+        return redirect(url_for("app_home"))
+
+    user_id = user["user_id"]
+    balance = user["balance"]
+
+    method = request.form.get("method", "")
+    wallet = request.form.get("wallet", "").strip()
+    try:
+        amount = float(request.form.get("amount", 0))
+    except (ValueError, TypeError):
+        flash(strings.get("FLASH_INVALID_AMOUNT", "Invalid amount"), "danger")
+        return redirect(url_for("app_wallet"))
+
+    conf = database.get_business_config()
+    min_methods = conf["MIN_METHODS"]
+    method_min = min_methods.get(method, min_methods.get("DEFAULT", 0.50))
+
+    if round(float(balance), 2) < round(float(method_min), 2):
+        flash(strings.get("FLASH_BALANCE_BELOW_MIN", "Balance below minimum").format(method_min), "danger")
+        return redirect(url_for("app_wallet"))
+
+    if amount < method_min:
+        flash(strings.get("FLASH_METHOD_MIN", "Min limit error").format(method_min), "danger")
+        return redirect(url_for("app_wallet"))
+
+    if amount > balance:
+        flash(strings.get("FLASH_INSUFFICIENT", "Insufficient balance"), "danger")
+        return redirect(url_for("app_wallet"))
+    if not wallet:
+        flash(strings.get("FLASH_NO_WALLET", "No wallet"), "danger")
+        return redirect(url_for("app_wallet"))
+
+    wid = database.add_withdrawal(user_id, amount, method, wallet)
+
+    # Notify admin
+    try:
+        username = f"@{user.get('username')}" if user.get('username') else user.get('full_name', 'Unknown')
+        
+        # Get admin language and currency
+        admin_user = database.get_user(ADMIN_ID)
+        a_lang = admin_user['language'] if admin_user else 'ar'
+        a_currency = admin_user['currency'] if admin_user else 'USD'
+        a_s = STRINGS.get(a_lang, STRINGS['ar'])
+        
+        amount_text = format_currency_dual(amount, a_currency, a_lang)
+        
+        admin_msg = a_s['ADMIN_NOTIFY_WITHDRAW'].format(
+            source="Panel",
+            wid=wid, user_name=username, user_id=user_id,
+            amount_text=amount_text, method=method, wallet=wallet
+        )
+        
+        url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
+        data = json.dumps({"chat_id": ADMIN_ID, "text": admin_msg, "parse_mode": "HTML"}).encode('utf-8')
+        req = urllib.request.Request(url, data=data, headers={'Content-Type': 'application/json'})
+        with urllib.request.urlopen(req, timeout=5):
+            pass
+
+        # Also to channel
+        try:
+            data2 = json.dumps({"chat_id": WITHDRAWALS_CHANNEL_ID, "text": admin_msg, "parse_mode": "HTML"}).encode('utf-8')
+            req2 = urllib.request.Request(url, data=data2, headers={'Content-Type': 'application/json'})
+            with urllib.request.urlopen(req2, timeout=5):
+                pass
+        except Exception:
+            pass
+    except Exception as e:
+        with open("crash.log", "a", encoding="utf-8") as f:
+            f.write(f"WebApp withdraw notification error: {str(e)}\n")
+
+    flash(strings.get("FLASH_WITHDRAW_SUCCESS", "Request submitted!"), "success")
+    return redirect(url_for("app_wallet"))
+
+
+@app.route("/app/referrals")
+def app_referrals():
+    user, strings = get_webapp_user()
+    if not user:
+        return redirect(url_for("app_home"))
+
+    user_id = user["user_id"]
+    invited, active, tasks_total, profit = database.get_referral_detailed_stats(user_id)
+    referrals = database.get_referrals_list_data(user_id)
+
+    conf = database.get_business_config()
+    ref_bonus = conf["REFERRAL_BONUS"]
+
+    bot_username = os.getenv("BOT_USERNAME", "")
+    if not bot_username:
+        # Try to get from bot API
+        try:
+            url = f"https://api.telegram.org/bot{BOT_TOKEN}/getMe"
+            req = urllib.request.Request(url)
+            with urllib.request.urlopen(req, timeout=5) as resp:
+                bot_info = json.loads(resp.read().decode())
+                bot_username = bot_info.get("result", {}).get("username", "")
+        except Exception:
+            bot_username = "your_bot"
+
+    ref_link = f"https://t.me/{bot_username}?start=REF{user_id}"
+
+    return render_template("app/referrals.html",
+        page="referrals",
+        user=user,
+        strings=strings,
+        ref_link=ref_link,
+        ref_bonus=ref_bonus,
+        invited=invited,
+        active=active,
+        profit=profit,
+        referrals=referrals
+    )
+
+
 
 if __name__ == "__main__":
     database.init_db()  # Ensure tables exist

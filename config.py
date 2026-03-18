@@ -6,18 +6,36 @@ except ImportError:
     pass
 
 # ── Bot Credentials ──────────────────────────────────────────────────────────
-BOT_TOKEN  = os.getenv("BOT_TOKEN",  "8634536031:AAFwZKu3x_jBgyCW4u673zC73VGwWT7pZW4")
-ADMIN_ID   = int(os.getenv("ADMIN_ID", "7142953055"))
+# ملاحظة: يفضل وضع القيم الحقيقية في ملف .env وليس هنا مباشرة
+BOT_TOKEN  = os.getenv("BOT_TOKEN", "Enter_Your_Token_In_DotEnv")
+
+# تحويل آمن للـ ID لتجنب التوقف إذا كانت القيمة نصية
+_admin_id_raw = os.getenv("ADMIN_ID", "0")
+if _admin_id_raw.isdigit() or (_admin_id_raw.startswith("-") and _admin_id_raw[1:].isdigit()):
+    ADMIN_ID = int(_admin_id_raw)
+else:
+    ADMIN_ID = 0
+
+
+
+# ── Dashboard Credentials ───────────────────────────────────────────────────
+DASHBOARD_USER = os.getenv("DASHBOARD_USER", "admin")
+DASHBOARD_PASS = os.getenv("DASHBOARD_PASS", "admin1234")
+DASHBOARD_PORT = int(os.getenv("DASHBOARD_PORT", "5000"))
+DASHBOARD_URL  = os.getenv("DASHBOARD_URL", "http://localhost:5000")
+
 
 # ── Business Settings ────────────────────────────────────────────────────────
-BOT_NAME       = os.getenv("BOT_NAME",      "Gmail Store 🇪🇬")
+BOT_NAME       = os.getenv("BOT_NAME",      "Gmail Farmer Plus")
 GMAIL_PRICE    = float(os.getenv("GMAIL_PRICE",   "0.20"))   # USD per Gmail
 MIN_WITHDRAW   = float(os.getenv("MIN_WITHDRAW",  "0.20"))   # Default USD minimum (Legacy)
 BASE_CURRENCY  = "USD"
 REFERRAL_BONUS = float(os.getenv("REFERRAL_BONUS", "0.01")) # USD bonus per referral task
 SUPPORT_LINK   = os.getenv("SUPPORT_LINK", "@A_M_E_11")
-EMAILS_CHANNEL_ID = os.getenv("EMAILS_CHANNEL_ID", "-1003857910149")
-WITHDRAWALS_CHANNEL_ID = os.getenv("WITHDRAWALS_CHANNEL_ID", "-1003805740955")
+EMAILS_CHANNEL_ID = os.getenv("EMAILS_CHANNEL_ID", "Add_In_DotEnv")
+WITHDRAWALS_CHANNEL_ID = os.getenv("WITHDRAWALS_CHANNEL_ID", "Add_In_DotEnv")
+
+
 
 # ── Payment Methods ──────────────────────────────────────────────────────────
 PAYMENT_METHODS = [

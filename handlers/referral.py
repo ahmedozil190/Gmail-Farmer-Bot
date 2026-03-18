@@ -10,6 +10,9 @@ from utils.ban_check import is_banned
 
 async def referral_handler_fn(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """🔗 الإحالة — referral system info."""
+    from utils.subscription import require_subscription
+    if not await require_subscription(update, context):
+        return
     if await is_banned(update, context):
         return
     user_id = update.effective_user.id

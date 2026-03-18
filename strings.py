@@ -6,7 +6,13 @@ STRINGS = {
             "🎉 مرحباً بك في أسهل وأسرع طريقة للربح! 💰\n\n"
             "✨ ابدأ رحلتك نحو الربح الآن ✨"
         ),
-        'START_MSG_2': "🎯 اختر زر المهام لتبدأ رحلتك! 🚀",
+        'START_MSG_2': "🎯 اختر زر تسجيل ايميل لتبدأ رحلتك! 🚀",
+        
+        # ── Force Join Channel ──
+        'FORCE_JOIN_MSG': "📢 للاستخدام يجب الاشتراك أولاً في القناة الإجبارية:\n\n{channels}\n\n1) اضغط على زر الاشتراك\n2) اشترك في القناة\n3) ارجع واضغط \"تحقق من الاشتراك\"",
+        'BTN_JOIN_CHANNEL': "اشترك في القناة 📢",
+        'BTN_VERIFY_SUB': "تحقق من الاشتراك ✅",
+        'ERR_NOT_JOINED': "لم تقم بالاشتراك في القناة بعد! ❌",
         
         # Main Menu Buttons
         'BTN_TASKS': "➕ تسجيل إيميل جديد",
@@ -41,7 +47,7 @@ STRINGS = {
         'TASKS_PRICE': "💵 السعر لكل حساب: <b>{price}</b>\n",
         'TASKS_STATS': "✅ حسابات مقبولة: <b>{approved}</b>\n⏳ في الانتظار: <b>{pending}</b>\n\n",
         'TASKS_PROMPT_EMAIL': "📨 أرسل لي عنوان Gmail الذي تريد بيعه\n<i>مثال: example@gmail.com</i>",
-        'TASKS_ERROR_GMAIL': "⚠️ يرجى إرسال عنوان Gmail صحيح!\nمثال: example@gmail.com",
+        'TASKS_ERROR_GMAIL': "⚠️ عنوان البريد الإلكتروني غير صحيح! يرجى إرسال Gmail صحيح (مثال: example@gmail.com)",
         'TASKS_PROMPT_PWD': "✅ تم استلام الإيميل: <code>{email}</code>\n\n🔑 الآن أرسل كلمة المرور للحساب:",
         'TASKS_SUCCESS': (
             "🎉 <b>تم إرسال الحساب بنجاح!</b>\n\n"
@@ -53,6 +59,30 @@ STRINGS = {
         'ERROR_RETRY': "❌ حدث خطأ، ابدأ من جديد.",
         
         # New Gmail Task Flow
+        'TASKS_MENU_PROMPT': (
+            "📋 قائمة المهام المتاحة\n\n"
+            "💰 اختر مهمة الآن وابدأ تحقيق الأرباح.\n"
+            "⚡️ كلما أنجزت مهام أكثر زادت أرباحك.\n\n"
+            "⏳ سيتم إضافة الأرباح إلى حسابك خلال 3 ايام كحد أقصى."
+        ),
+        'TASKS_PAUSED': (
+            "🚧 <b>تنويه مهم</b>\n"
+            "نظراً للإقبال الكبير على الخدمة حالياً، تم إيقاف إنشاء حسابات Gmail مؤقتاً لتنظيم الطلبات وضمان جودة الخدمة.\n\n"
+            "🔔 سيتم إشعاركم تلقائياً فور عودة الخدمة.\n"
+            "🙏 نشكر تفهّمكم وصبركم."
+        ),
+        'TASK_APPROVED': (
+            "✅ <b>تم قبول حسابك!</b>\n\n"
+            "📧 الحساب: <code>{gmail}</code>\n"
+            "💰 تم إضافة <b>{price}</b> إلى رصيدك.\n\n"
+            "شكراً لمجهودك، استمر في العمل! 🚀"
+        ),
+        'TASK_REJECTED': (
+            "❌ تم رفض حساب الجيميل الخاص بك.\n\n"
+            "📧 الجيميل: <code>{gmail}</code>\n\n"
+            "💡 راجع تعليمات المهمة وحاول مرة أخرى."
+        ),
+        'BTN_TASK_GMAIL': "📱 مهمة إنشاء جيميل - {price}",
         'TASKS_INSTRUCTIONS': (
             "📱 <b>مهمة إنشاء جيميل</b> ⛳️\n\n"
             "📋 <b>التعليمات</b> 🥊\n\n"
@@ -78,10 +108,12 @@ STRINGS = {
             "💡 مثال: <code>yourname@gmail.com</code>\n\n"
             "⚠️ تأكد من إرسال عنوان الإيميل فقط!"
         ),
-        'TASKS_SUCCESS_ONLY': (
-            "✅ <b>ممتاز! تم إرسال حساب الجيميل للمراجعة!</b>\n\n"
-            "💰 ستحصل على مكافأتك بعد موافقة الأدمن\n"
-            "📞 إذا كان لديك أي استفسار، تواصل مع الدعم"
+        'TASKS_SUCCESS_ONLY': "✅ تم إرسال بريد Gmail بنجاح وجارٍ مراجعته من قبل الأدمن.",
+        'ERR_DUPLICATE_GMAIL': (
+            "❌ تم إرسال هذا العنوان من قبل!\n\n"
+            "💡 يرجى إنشاء حساب جيميل جديد وإرسال عنوان مختلف\n\n"
+            "🔄 كل عنوان جيميل يمكن استخدامه مرة واحدة فقط\n\n"
+            "أو اضغط إلغاء للخروج:"
         ),
         'BTN_CONTINUE': "متابعة ✅",
         'BTN_CANCEL_TASK': "إلغاء المهمة ❌",
@@ -101,25 +133,20 @@ STRINGS = {
         'WITHDRAW_ERROR_MIN': "⚠️ الحد الأدنى للسحب {min_w:.2f}$.",
         'WITHDRAW_ERROR_MAX': "⚠️ المبلغ يتجاوز رصيدك ({balance:.2f}$).",
         'WITHDRAW_WALLET_PROMPT': "📝 أدخل {label}:",
-        'WITHDRAW_SUCCESS': (
-            "✅ <b>تم إرسال طلب السحب!</b>\n\n"
-            "💵 المبلغ: <b>{amount_text}</b>\n"
+        'WITHDRAW_SUCCESS': "✅ <b>تم تقديم طلب السحب بنجاح!</b>\n\n💵 المبلغ: <b>{amount_text}</b>\n💰 الطريقة: <b>{method}</b>\n🏦 العنوان: <code>{wallet}</code>\n\nسيتم مراجعة طلبك وإرساله في أقرب وقت. شكراً لك!",
+        'WITHDRAW_CONFIRM_BTN': "✅ تأكيد السحب",
+        'WITHDRAW_EDIT_BTN': "✏️ تعديل",
+        'WITHDRAW_PAID': (
+            "🎉 <b>إشعار سحب ناجح</b>\n\n"
+            "✅ تم تحويل مبلغ <b>{amount_text}</b> بنجاح!\n"
             "💳 الطريقة: <b>{method}</b>\n"
             "🏦 العنوان: <code>{wallet}</code>\n\n"
-            "⏳ سيتم تحويل المبلغ خلال 24 ساعة."
-        ),
-        'WITHDRAW_PAID': (
-            "✅ <b>تم ارسال طلب السحب!</b>\n\n"
-            "💵 المبلغ: <b>{amount_text}</b>\n"
-            "💳 الطريقة: <b>{method}</b>\n"
-            "📝 العنوان: <code>{wallet}</code>\n\n"
             "شكراً لعملك معنا! استمر في الإنجاز 🚀"
         ),
         'WITHDRAW_REJECTED': (
-            "❌ <b>تم رفض طلب السحب</b>\n\n"
-            "💵 المبلغ: <b>{amount_text}</b>\n"
-            "📝 العنوان: <code>{wallet}</code>\n"
-            "⚠️ السبب: <b>حدث خطأ تواصل مع الدعم</b>\n\n"
+            "❌ <b>إشعار رفض طلب السحب</b>\n\n"
+            "للأسف تم رفض طلب السحب الخاص بك لمبلغ <b>{amount_text}</b>.\n"
+            "🏦 العنوان: <code>{wallet}</code>\n\n"
             "🥊 لا تيأس! استمر في العمل لتحقيق المزيد من الأرباح 💰"
         ),
         
@@ -242,25 +269,29 @@ STRINGS = {
         ),
         'ADMIN_BROADCAST_USAGE': "استخدام: /broadcast رسالتك هنا",
         'ADMIN_BROADCAST_SUCCESS': "📢 <b>تم الإرسال</b>\n✅ نجح: {sent} | ❌ فشل: {failed}",
+        'ADMIN_REJECT_W_USAGE': "❌ الاستخدام: /reject_w <الرقم> [السبب]",
+        'ADMIN_REJECT_W_SUCCESS': "✅ تم رفض طلب السحب {id}. السبب: {reason}",
         
         # Admin Notifications (New Gmail/Withdraw)
         'ADMIN_NOTIFY_GMAIL': (
-            "📬 <b>طلب جديد #{sub_id}</b>\n\n"
-            "👤 المستخدم: {user_name} (<code>{user_id}</code>)\n"
-            "📧 Gmail: <code>{gmail}</code>\n"
-            "🔑 Password: <code>{pwd}</code>\n"
-            "🌐 Language: {u_lang}\n\n"
-            "للقبول: /approve {sub_id}\n"
-            "للرفض: /reject {sub_id} السبب"
+            "📬 <b>طلب مهمة جديد ({source})</b>\n\n"
+            "👤 اسم المستخدم: {user_name}\n"
+            "👤 آيدي المستخدم: <code>{user_id}</code>\n"
+            "📧 جيميل: <code>{gmail}</code>\n"
+            "🔑 الباسورد: <code>{pwd}</code>\n\n"
+            "قبول: /approve {sub_id}\n"
+            "رفض: /reject {sub_id}"
         ),
         'ADMIN_NOTIFY_WITHDRAW': (
-            "💸 <b>طلب سحب جديد #{wid}</b>\n\n"
-            "👤 المستخدم: {user_name} (<code>{user_id}</code>)\n"
+            "💸 <b>طلب سحب جديد ({source})</b>\n\n"
+            "الرقم التعريفي: {wid}\n"
+            "👤 اسم المستخدم: {user_name}\n"
+            "👤 آيدي المستخدم: <code>{user_id}</code>\n"
             "💵 المبلغ: <b>{amount_text}</b>\n"
             "💳 الطريقة: {method}\n"
-            "🏦 العنوان: <code>{wallet}</code>\n"
-            "🌐 Language: {u_lang}\n\n"
-            "للتأكيد: /paid {wid}"
+            "🏦 المحفظة: <code>{wallet}</code>\n\n"
+            "تأكيد: /paid {wid}\n"
+            "رفض: /reject_w {wid}"
         ),
         'NOTIFY_USER_APPROVE': (
             "🎉 <b>تهانينا!</b> تم قبول حسابك!\n\n"
@@ -302,7 +333,13 @@ STRINGS = {
             "🎉 Welcome to the easiest and fastest way to earn! 💰\n\n"
             "✨ Start your journey to profit now ✨"
         ),
-        'START_MSG_2': "🎯 Choose the Tasks button to start your journey! 🚀",
+        'START_MSG_2': "🎯 Choose the Register Email button to start your journey! 🚀",
+        
+        # ── Force Join Channel ──
+        'FORCE_JOIN_MSG': "📢 To use the bot, you must first subscribe to the mandatory channel:\n\n{channels}\n\n1) Click the join button\n2) Subscribe to the channel\n3) Return and click \"Verify Subscription\"",
+        'BTN_JOIN_CHANNEL': "Join Channel 📢",
+        'BTN_VERIFY_SUB': "Verify Subscription ✅",
+        'ERR_NOT_JOINED': "You have not subscribed to the channel yet! ❌",
         
         # Main Menu Buttons
         'BTN_TASKS': "➕ Register a new Gmail",
@@ -314,6 +351,7 @@ STRINGS = {
         'BTN_LANG': "🌐 Language",
         'BTN_HELP': "💬 Help",
         'BTN_BACK': "🔙 Back",
+        'LANG_MSG': "🌐 Choose your preferred language:\n\n🌐 اختر لغتك المفضلة:",
         
         # Balance Menu Buttons
         'BTN_PAYOUT': "💳 Payout",
@@ -337,7 +375,7 @@ STRINGS = {
         'TASKS_PRICE': "💵 Price per account: <b>{price}</b>\n",
         'TASKS_STATS': "✅ Approved: <b>{approved}</b>\n⏳ Pending: <b>{pending}</b>\n\n",
         'TASKS_PROMPT_EMAIL': "📨 Send me the Gmail address you want to sell\n<i>Example: example@gmail.com</i>",
-        'TASKS_ERROR_GMAIL': "⚠️ Please send a valid Gmail address!\nExample: example@gmail.com",
+        'TASKS_ERROR_GMAIL': "⚠️ Invalid email address! Please send a valid Gmail (e.g., example@gmail.com)",
         'TASKS_PROMPT_PWD': "✅ Email received: <code>{email}</code>\n\n🔑 Now send the account password:",
         'TASKS_SUCCESS': (
             "🎉 <b>Account submitted successfully!</b>\n\n"
@@ -349,6 +387,30 @@ STRINGS = {
         'ERROR_RETRY': "❌ An error occurred, start over.",
 
         # New Gmail Task Flow
+        'TASKS_MENU_PROMPT': (
+            "📋 Available Tasks List\n\n"
+            "💰 Choose a task now and start earning.\n"
+            "⚡️ The more tasks you complete, the more you win.\n\n"
+            "⏳ Profits will be added to your account within a maximum of 3 days."
+        ),
+        'TASKS_PAUSED': (
+            "🚧 <b>Important Notice</b>\n"
+            "Due to high demand, the creation of Gmail accounts has been temporarily paused to organize requests and ensure service quality.\n\n"
+            "🔔 You will be notified automatically once the service resumes.\n"
+            "🙏 Thank you for your understanding and patience."
+        ),
+        'TASK_APPROVED': (
+            "✅ <b>Task Approved!</b>\n\n"
+            "📧 Account: <code>{gmail}</code>\n"
+            "💰 <b>{price}</b> has been added to your balance.\n\n"
+            "Thank you for your effort, keep it up! 🚀"
+        ),
+        'TASK_REJECTED': (
+            "❌ Your Gmail account has been rejected.\n\n"
+            "📧 Gmail: <code>{gmail}</code>\n\n"
+            "💡 Review the task instructions and try again."
+        ),
+        'BTN_TASK_GMAIL': "📱 Create Gmail Task - {price}",
         'TASKS_INSTRUCTIONS': (
             "📱 <b>Gmail Creation Task</b> ⛳️\n\n"
             "📋 <b>Instructions</b> 🥊\n\n"
@@ -379,6 +441,12 @@ STRINGS = {
             "💰 You will receive your reward after admin approval\n"
             "📞 If you have any questions, contact support"
         ),
+        'ERR_DUPLICATE_GMAIL': (
+            "❌ This address has already been submitted!\n\n"
+            "💡 Please create a new Gmail account and send a different address\n\n"
+            "🔄 Each Gmail address can be used only once\n\n"
+            "Or press Cancel to exit:"
+        ),
         'BTN_CONTINUE': "Continue ✅",
         'BTN_CANCEL_TASK': "Cancel Task ❌",
         'MSG_TASK_CANCELLED': "✅ Task cancelled",
@@ -390,33 +458,28 @@ STRINGS = {
             "Your active balance must be greater than <b>$0</b> to request a withdrawal."
         ),
         'WITHDRAW_TITLE': "📤 <b>Withdrawal Request</b>\n\n",
-        'WITHDRAW_AVAIL': "💰 Available Balance: <b>{balance:.2f}$</b>\n\n",
+        'WITHDRAW_AVAIL': "💰 Available Balance: <b>{balance_text}</b>\n\n",
         'WITHDRAW_METHOD_PROMPT': "Choose payment method:",
         'WITHDRAW_AMOUNT_PROMPT': "✅ Method: <b>{method}</b>\n\n💵 Enter the amount to withdraw (Min {min_w:.2f}$, Available {balance:.2f}$):",
         'WITHDRAW_ERROR_NUM': "⚠️ Enter a valid number.",
         'WITHDRAW_ERROR_MIN': "⚠️ Minimum withdrawal is {min_w:.2f}$.",
         'WITHDRAW_ERROR_MAX': "⚠️ Amount exceeds your balance ({balance:.2f}$).",
         'WITHDRAW_WALLET_PROMPT': "📝 Enter your {label}:",
-        'WITHDRAW_SUCCESS': (
-            "✅ <b>Withdrawal request sent!</b>\n\n"
-            "💵 Amount: <b>{amount_text}</b>\n"
+        'WITHDRAW_SUCCESS': "✅ <b>Withdrawal request submitted!</b>\n\n💵 Amount: <b>{amount_text}</b>\n💰 Method: <b>{method}</b>\n🏦 Address: <code>{wallet}</code>\n\nYour request will be reviewed and sent shortly. Thank you!",
+        'WITHDRAW_CONFIRM_BTN': "✅ Confirm Withdrawal",
+        'WITHDRAW_EDIT_BTN': "✏️ Edit",
+        'WITHDRAW_PAID': (
+            "🎉 <b>Payout Success Notice</b>\n\n"
+            "✅ Your payout of <b>{amount_text}</b> has been sent successfully!\n"
             "💳 Method: <b>{method}</b>\n"
             "🏦 Address: <code>{wallet}</code>\n\n"
-            "⏳ Payment will be processed within 24 hours."
-        ),
-        'WITHDRAW_PAID': (
-            "✅ <b>Withdrawal paid!</b>\n\n"
-            "💵 Amount: <b>{amount_text}</b>\n"
-            "💳 Method: <b>{method}</b>\n"
-            "📝 Address: <code>{wallet}</code>\n\n"
             "Thank you for working with us! Keep it up 🚀"
         ),
         'WITHDRAW_REJECTED': (
-            "❌ <b>Withdrawal rejected</b>\n\n"
-            "💵 Amount: <b>{amount_text}</b>\n"
-            "📝 Address: <code>{wallet}</code>\n"
-            "⚠️ Reason: <b>An error occurred, contact support</b>\n\n"
-            "🥊 Don't give up! Keep working to earn more rewards 💰"
+            "❌ <b>Withdrawal Request Rejected</b>\n\n"
+            "Unfortunately, your withdrawal request for <b>{amount_text}</b> was rejected.\n"
+            "🏦 Address: <code>{wallet}</code>\n\n"
+            "🥊 Don't give up! Keep working to earn more profits 💰"
         ),
 
         # History & Accounts
@@ -538,25 +601,29 @@ STRINGS = {
         ),
         'ADMIN_BROADCAST_USAGE': "Usage: /broadcast your message here",
         'ADMIN_BROADCAST_SUCCESS': "📢 <b>Broadcast Sent</b>\n✅ Success: {sent} | ❌ Failed: {failed}",
+        'ADMIN_REJECT_W_USAGE': "❌ Usage: /reject_w <id> [reason]",
+        'ADMIN_REJECT_W_SUCCESS': "✅ Withdrawal {id} rejected. Reason: {reason}",
 
         # Admin Notifications (New Gmail/Withdraw)
         'ADMIN_NOTIFY_GMAIL': (
-            "📬 <b>New Submission #{sub_id}</b>\n\n"
-            "👤 User: {user_name} (<code>{user_id}</code>)\n"
+            "📬 <b>New Submission ({source})</b>\n\n"
+            "👤 Username: {user_name}\n"
+            "👤 User ID: <code>{user_id}</code>\n"
             "📧 Gmail: <code>{gmail}</code>\n"
-            "🔑 Password: <code>{pwd}</code>\n"
-            "🌐 Language: {u_lang}\n\n"
+            "🔑 Password: <code>{pwd}</code>\n\n"
             "Approve: /approve {sub_id}\n"
-            "Reject: /reject {sub_id} reason"
+            "Reject: /reject {sub_id}"
         ),
         'ADMIN_NOTIFY_WITHDRAW': (
-            "💸 <b>New Withdrawal #{wid}</b>\n\n"
-            "👤 User: {user_name} (<code>{user_id}</code>)\n"
+            "💸 <b>New Withdrawal ({source})</b>\n\n"
+            "Payment ID: {wid}\n"
+            "👤 Username: {user_name}\n"
+            "👤 User ID: <code>{user_id}</code>\n"
             "💵 Amount: <b>{amount_text}</b>\n"
             "💳 Method: {method}\n"
-            "🏦 Address: <code>{wallet}</code>\n"
-            "🌐 Language: {u_lang}\n\n"
-            "Confirm: /paid {wid}"
+            "🏦 Address: <code>{wallet}</code>\n\n"
+            "Confirm: /paid {wid}\n"
+            "Reject: /reject_w {wid}"
         ),
         'NOTIFY_USER_APPROVE': (
             "🎉 <b>Congratulations!</b> Your account was accepted!\n\n"
@@ -591,6 +658,390 @@ STRINGS = {
         'BTN_PREV_PAGE': "⬅️ Previous Page",
         
         # Language
-        'LANG_MSG': "🌐 Choose Language / اختر اللغة:",
+    },
+}
+
+WEBAPP_STRINGS = {
+    'ar': {
+        'NAV_HOME': "الرئيسية",
+        'NAV_TASKS': "المهام",
+        'NAV_WALLET': "المحفظة",
+        'NAV_REFERRALS': "الإحالات",
+        
+        'HOME_WELCOME': "مرحباً بك مجدداً 👋",
+        'HOME_GREETING': "نحن سعداء برؤيتك مرة أخرى",
+        'HOME_BALANCE': "الرصيد المتاح",
+        'HOME_PENDING': "⏳ معلق: $%.2f",
+        'HOME_USD': "دولار",
+        'HOME_QUICK_ACTIONS': "إجراءات سريعة",
+        'HOME_NEW_TASK': "مهمة جديدة",
+        'HOME_WITHDRAW': "سحب",
+        'HOME_INVITE': "دعوة",
+        'HOME_STATS': "📊 إحصائياتك",
+        'HOME_APPROVED': "مقبول",
+        'HOME_REJECTED': "مرفوض",
+        'HOME_REQ_PENDING': "قيد الانتظار",
+        'HOME_RECENT_TASKS': "📋 آخر المهام",
+        'HOME_VIEW_ALL': "عرض الكل ←",
+        
+        'TASKS_TITLE': "📱 المهام",
+        'TASKS_CREATE_GMAIL': "إنشاء حساب Gmail",
+        'TASKS_EARN': "اربح <b>$%.2f</b> لكل حساب",
+        'TASKS_START': "ابدأ مهمة جديدة",
+        'TASKS_PAUSED': "🚧 إنشاء المهام متوقف مؤقتاً. سيتم إخطارك عند العودة.",
+        'TASKS_HISTORY': "📋 سجل التقديمات",
+        'TASKS_EMPTY': "لا توجد مهام حالياً.<br>ابدأ بالربح عبر إنشاء حسابات Gmail!",
+        'TASKS_REJECTED_HINT': "راجع تعليمات المهمة وحاول مرة أخرى.",
+        
+        'TASK_START_TITLE': "📱 مهمة Gmail جديدة",
+        'TASK_START_INSTRUCTIONS': "📋 التعليمات",
+        'TASK_START_PWD': "🔑 <b>كلمة المرور الموحدة:</b> <code class='copyable'>Aa612003@</code>",
+        'TASK_START_RULE1': "📱 أنشئ الحساب من هاتفك فقط",
+        'TASK_START_RULE2': "👤 استخدم أي اسم أجنبي",
+        'TASK_START_RULE3': "📧 استخدم كلمة المرور الموحدة أعلاه",
+        'TASK_START_RULE4': "⚠️ ستحصل على المكافأة بعد موافقة الأدمن",
+        'TASK_START_RULE5': "🕐 خذ وقتك — لا يوجد حد زمني",
+        'TASK_START_STEPS': "📝 الخطوات",
+        'TASK_START_STEP1': "1️⃣ أنشئ حساب Gmail بكلمة المرور أعلاه",
+        'TASK_START_STEP2': "2️⃣ أدخل عنوان Gmail الجديد بالأسفل",
+        'TASK_START_STEP3': "3️⃣ انتظر موافقة الأدمن",
+        'TASK_START_SUBMIT_LBL': "📧 أدخل بريد Gmail",
+        'TASK_START_SUBMIT_PH': "أدخل عنوان الإيميل هنا...",
+        'TASK_START_SUBMIT_BTN': "تقديم المهمة",
+        'TASK_START_BACK': "العودة للمهام",
+        
+        'WALLET_TITLE': "💰 المحفظة",
+        'WALLET_WITHDRAW_REQ': "💸 طلب سحب رصيد",
+        'WALLET_MIN_LIMIT': "الحد الأدنى للسحب هو $%.2f. استمر في العمل!",
+        'WALLET_METHOD_LBL': "طريقة الدفع",
+        'WALLET_METHOD_PH': "اختر الطريقة...",
+        'WALLET_AMOUNT_LBL': "المبلغ (USD)",
+        'WALLET_AVAIL': "المتاح: $%.2f",
+        'WALLET_ADDR_LBL': 'عنوان المحفظة',
+        'WALLET_ADDR_PH': 'أدخل العنوان هنا...',
+        'WALLET_LBL_VODA': 'رقم فودافون كاش',
+        'WALLET_LBL_BINANCE': 'معرف باينانس (Pay ID / UID)',
+        'WALLET_LBL_USDT': 'عنوان محفظة USDT (BEP20)',
+        'WALLET_LBL_TRX': 'عنوان محفظة TRX (TRC20)',
+        'WALLET_SUBMIT_BTN': 'إرسال طلب السحب',
+        'WALLET_HISTORY': "📜 سجل السحب",
+        'WALLET_EMPTY': "لا توجد عمليات سحب حتى الآن.",
+        'CONFIRM_TITLE': "تأكيد طلب السحب",
+        'CONFIRM_METHOD': "طريقة السحب:",
+        'CONFIRM_AMOUNT': "المبلغ:",
+        'CONFIRM_WALLET': "العنوان / الرقم:",
+        'CONFIRM_BTN': "تأكيد السحب",
+        'EDIT_BTN': "تعديل",
+        
+        'REF_TITLE': "👥 الإحالات",
+        'REF_LINK_TITLE': "🔗 رابط الإحالة الخاص بك",
+        'REF_COPY_BTN': "نسخ",
+        'REF_INVITED': "مدعو",
+        'REF_ACTIVE': "نشط",
+        'REF_PROFIT': "الأرباح",
+        'REF_LIST_TITLE': "👥 المستخدمين المدعوين",
+        'REF_EMPTY': "لا يوجد إحالات حتى الآن.<br>شارك رابطك وابدأ بالربح!",
+        'REF_BONUS_TEXT': "اربح <b>$%.2f</b> عن كل مهمة مقبولة من إحالاتك",
+        'REF_STATUS_ACTIVE': "✅ نشط",
+        'REF_STATUS_WAITING': "⏳ في الانتظار",
+        
+        'FLASH_INVALID_GMAIL': "⚠️ يرجى إدخال عنوان Gmail صحيح.",
+        'FLASH_ALREADY_SUBMITTED': "❌ تم إرسال هذا العنوان من قبل! يرجى إرسال عنوان مختلف.",
+        'FLASH_TASK_SUCCESS': "✅ تم تقديم المهمة بنجاح!",
+        'STATUS_PENDING': "قيد الانتظار",
+        'STATUS_APPROVED': "مقبول",
+        'STATUS_REJECTED': "مرفوض",
+        'STATUS_COMPLETED': "مكتمل",
+        'FLASH_INVALID_AMOUNT': "⚠️ مبلغ غير صحيح.",
+        'FLASH_METHOD_MIN': "⚠️ الحد الأدنى للسحب لهذه الطريقة هو ${:.2f}.",
+        'FLASH_INSUFFICIENT': "⚠️ رصيد غير كافٍ.",
+        'FLASH_NO_WALLET': "⚠️ يرجى إدخال عنوان المحفظة.",
+        'FLASH_BALANCE_BELOW_MIN': "❌ رصيدك أقل من الحد الأدنى للسحب لهذه الطريقة (${:.2f})",
+        'FLASH_WITHDRAW_SUCCESS': "✅ تم إرسال طلب السحب بنجاح!",
+    },
+    'en': {
+        'NAV_HOME': "Home",
+
+        'NAV_TASKS': "Tasks",
+        'NAV_WALLET': "Wallet",
+        'NAV_REFERRALS': "Referrals",
+        
+        'HOME_WELCOME': "Welcome back 👋",
+        'HOME_GREETING': "We are glad to see you again",
+        'HOME_BALANCE': "Available Balance",
+        'HOME_PENDING': "⏳ Pending: $%.2f",
+        'HOME_USD': "USD",
+        'HOME_QUICK_ACTIONS': "Quick Actions",
+        'HOME_NEW_TASK': "New Task",
+        'HOME_WITHDRAW': "Withdraw",
+        'HOME_INVITE': "Invite",
+        'HOME_STATS': "📊 Your Stats",
+        'HOME_APPROVED': "Approved",
+        'HOME_REJECTED': "Rejected",
+        'HOME_REQ_PENDING': "Pending",
+        'HOME_RECENT_TASKS': "📋 Recent Tasks",
+        'HOME_VIEW_ALL': "View all ←",
+        
+        'TASKS_TITLE': "📱 Tasks",
+        'TASKS_CREATE_GMAIL': "Create Gmail Account",
+        'TASKS_EARN': "Earn <b>$%.2f</b> per account",
+        'TASKS_START': "Start New Task",
+        'TASKS_PAUSED': "🚧 Task creation is temporarily paused.",
+        'TASKS_HISTORY': "📋 Submission History",
+        'TASKS_EMPTY': "No tasks yet.<br>Start earning by creating Gmail accounts!",
+        'TASKS_REJECTED_HINT': "Review the task instructions and try again.",
+        
+        'TASK_START_TITLE': "📱 New Gmail Task",
+        'TASK_START_INSTRUCTIONS': "📋 Instructions",
+        'TASK_START_PWD': "🔑 <b>Unified Password:</b> <code class='copyable'>Aa612003@</code>",
+        'TASK_START_RULE1': "📱 Create from your phone only",
+        'TASK_START_RULE2': "👤 Use any foreign name",
+        'TASK_START_RULE3': "📧 Use unified password above",
+        'TASK_START_RULE4': "⚠️ Reward after admin approval",
+        'TASK_START_RULE5': "🕐 Take your time — no limit",
+        'TASK_START_STEPS': "📝 Steps",
+        'TASK_START_STEP1': "1️⃣ Create Gmail with password above",
+        'TASK_START_STEP2': "2️⃣ Enter address below",
+        'TASK_START_STEP3': "3️⃣ Wait for approval",
+        'TASK_START_SUBMIT_LBL': "📧 Gmail Address",
+        'TASK_START_SUBMIT_PH': "Enter your Gmail here...",
+        'TASK_START_SUBMIT_BTN': "Submit Task",
+        'TASK_START_BACK': "Back to Tasks",
+        
+        'WALLET_TITLE': "💰 Wallet",
+        'WALLET_WITHDRAW_REQ': "💸 Request Withdrawal",
+        'WALLET_MIN_LIMIT': "Min withdrawal is $%.2f. Keep earning!",
+        'WALLET_METHOD_LBL': "Payment Method",
+        'WALLET_METHOD_PH': "Select method...",
+        'WALLET_AMOUNT_LBL': "Amount (USD)",
+        'WALLET_AVAIL': "Available: $%.2f",
+        'WALLET_ADDR_LBL': 'Wallet Address',
+        'WALLET_ADDR_PH': 'Enter address here...',
+        'WALLET_LBL_VODA': 'Vodafone Cash Number',
+        'WALLET_LBL_BINANCE': 'Binance Pay ID or UID',
+        'WALLET_LBL_USDT': 'USDT (BEP20) Wallet Address',
+        'WALLET_LBL_TRX': 'TRX (TRC20) Wallet Address',
+        'WALLET_SUBMIT_BTN': 'Submit Withdrawal',
+        'WALLET_HISTORY': "📜 Withdrawal History",
+        'WALLET_EMPTY': "No withdrawals yet.",
+        'CONFIRM_TITLE': "Confirm Withdrawal",
+        'CONFIRM_METHOD': "Method:",
+        'CONFIRM_AMOUNT': "Amount:",
+        'CONFIRM_WALLET': "Address / Number:",
+        'CONFIRM_BTN': "Confirm Withdrawal",
+        'EDIT_BTN': "Edit",
+        
+        'REF_TITLE': "👥 Referrals",
+        'REF_LINK_TITLE': "🔗 Your Referral Link",
+        'REF_COPY_BTN': "Copy",
+        'REF_INVITED': "Invited",
+        'REF_ACTIVE': "Active",
+        'REF_PROFIT': "Profit",
+        'REF_LIST_TITLE': "👥 Invited Users",
+        'REF_EMPTY': "No referrals yet.<br>Share your link and earn!",
+        'REF_BONUS_TEXT': "Earn <b>$%.2f</b> per approved task from referrals",
+        'REF_STATUS_ACTIVE': "✅ Active",
+        'REF_STATUS_WAITING': "⏳ Waiting",
+        
+        'FLASH_INVALID_GMAIL': "⚠️ Please enter a valid Gmail address.",
+        'FLASH_ALREADY_SUBMITTED': "❌ This Gmail has already been submitted! Please send a different address.",
+        'FLASH_TASK_SUCCESS': "✅ Task submitted successfully!",
+        'STATUS_PENDING': "Pending",
+        'STATUS_APPROVED': "Approved",
+        'STATUS_REJECTED': "Rejected",
+        'STATUS_COMPLETED': "Completed",
+        'FLASH_INVALID_AMOUNT': "⚠️ Invalid amount.",
+        'FLASH_METHOD_MIN': "⚠️ Minimum for this method is ${:.2f}.",
+        'FLASH_INSUFFICIENT': "⚠️ Insufficient balance.",
+        'FLASH_NO_WALLET': "⚠️ Please enter a wallet address.",
+        'FLASH_BALANCE_BELOW_MIN': "❌ Your balance is below the minimum for this method (${:.2f})",
+        'FLASH_WITHDRAW_SUCCESS': "✅ Withdrawal request submitted!",
     }
 }
+
+DASHBOARD_STRINGS = {
+    'ar': {
+        'NAV_HOME': "الرئيسية",
+        'NAV_TASKS': "المهام",
+        'NAV_PAY': "الدفع",
+        'NAV_USERS': "المستخدمين",
+        'NAV_MSG': "رسائل",
+        'NAV_SET': "الإعدادات",
+        
+        'DASH_INDEX_TITLE': "نظرة عامة",
+        'DASH_USERS_SECTION': "المستخدمين",
+        'DASH_TOTAL_USERS': "إجمالي المستخدمين",
+        'DASH_BANNED_USERS': "محظورين",
+        'DASH_TASKS_SECTION': "المهام",
+        'DASH_TOTAL_TASKS': "إجمالي المهام",
+        'DASH_APPROVED': "مقبول",
+        'DASH_PENDING': "قيد الانتظار",
+        'DASH_REJECTED': "مرفوض",
+        'DASH_WITHDRAWALS_SECTION': "عمليات السحب",
+        'DASH_TOTAL_REQS': "إجمالي الطلبات",
+        'DASH_COMPLETED': "مكتمل",
+        
+        'DASH_TASKS_PAGE_TITLE': "تقديمات المهام",
+        'DASH_FILTER_ALL': "الكل",
+        'DASH_FILTER_PENDING': "قيد الانتظار",
+        'DASH_FILTER_PAID': "تم الدفع",
+        'DASH_FILTER_REJECTED': "مرفوض",
+        'DASH_AGE_1D': "يوم واحد",
+        'DASH_AGE_2D': "يومين",
+        'DASH_AGE_3D': "3 أيام",
+        'DASH_SEARCH_USER_PH': "معرف المستخدم...",
+        'DASH_SEARCH_DATE_PH': "التاريخ...",
+        'DASH_FIND_BTN': "بحث",
+        'DASH_RESET_BTN': "إعادة ضبط",
+        'DASH_QUEUE_TITLE': "قائمة التقديمات",
+        'DASH_RESULTS': "نتائج",
+        'DASH_NO_TASKS': "لا توجد تقديمات.",
+        'DASH_APPROVE_TASK': "قبول المهمة",
+        'DASH_REJECT_TASK': "رفض المهمة",
+        'DASH_CONFIRM_REJECT': "تأكيد الرفض",
+        'DASH_REJECT_MSG': "هل أنت متأكد من رفض هذا التاسك؟ سيتم إخطار المستخدم.",
+        'DASH_CANCEL': "إلغاء",
+        'DASH_MODAL_REJECT_BTN': "رفض",
+        
+        'DASH_W_PAGE_TITLE': "عمليات السحب",
+        'DASH_W_REQS': "طلبات السحب",
+        'DASH_NO_WITHDRAWALS': "لا توجد طلبات سحب.",
+        'DASH_MARK_PAID': "تحديد كمدفوع",
+        'DASH_REASON': "السبب",
+        
+        'DASH_U_PAGE_TITLE': "إدارة المستخدمين",
+        'DASH_U_SEARCH_PH': "بحث عن مستخدمين...",
+        'DASH_U_EDIT': "تعديل المستخدم",
+        'DASH_U_ADJUST_BAL': "تعديل الرصيد",
+        'DASH_U_BAN': "حظر الحساب",
+        'DASH_U_UNBAN': "إلغاء الحظر",
+        'DASH_U_BALANCE': "الرصيد",
+        'DASH_U_HOLD': "معلق",
+        'DASH_U_TASKS': "مهام",
+        'DASH_U_STATUS_ACTIVE': "نشط",
+        'DASH_U_STATUS_BANNED': "محظور",
+        
+        'DASH_BS_PAGE_TITLE': "إرسال رسائل",
+        'DASH_BS_ALL': "إرسال للجميع (برودكاست)",
+        'DASH_BS_USER': "إرسال لمستخدم محدد",
+        'DASH_BS_CONTENT': "محتوى الرسالة (يدعم HTML)",
+        'DASH_BS_SEND_BTN': "إرسال الآن",
+        'DASH_BS_PH': "اكتب رسالتك هنا...",
+        'DASH_BS_USER_ID': "معرف المستخدم (ID)",
+
+        'SETTINGS_TITLE': "إعدادات البوت العامة",
+        'SETTINGS_CONFIG': "تكوين البوت",
+        'SETTINGS_GMAIL_PRICE': "سعر الجيميل ($)",
+        'SETTINGS_REF_BONUS': "مكافأة الإحالة ($)",
+        'SETTINGS_MIN_WITHDRAWALS': "حدود السحب الأدنى لكل طريقة:",
+        'SETTINGS_VODAFONE': "فودافون كاش ($)",
+        'SETTINGS_BINANCE': "بينانس ($)",
+        'SETTINGS_USDT': "USDT (BEP20) ($)",
+        'SETTINGS_TRX': "TRX (TRC20) ($)",
+        'SETTINGS_BUYING_STATUS': "حالة شراء المهام",
+        'SETTINGS_ACTIVE': "🟢 نشط",
+        'SETTINGS_PAUSED': "🔴 متوقف",
+        'SETTINGS_UPDATE_BTN': "تحديث الإعدادات",
+        'SETTINGS_LANG': "لغة لوحة التحكم",
+        'SETTINGS_REQ_CHANNELS': "قنوات الاشتراك الإجباري",
+        'SETTINGS_REQ_CHANNELS_HELP': "افصل بين القنوات بفاصلة إذا كان هناك أكثر من قناة (مثال: @channel1,@channel2).",
+        'ALERT_SETTINGS_SAVED': "تم تحديث الإعدادات بنجاح! التغييرات نشطة الآن للبوت.",
+        'ALERT_LOGIN_SUCCESS': "تم تسجيل الدخول بنجاح.",
+        
+        'PAGE_LABEL': "صفحة",
+        'OF_LABEL': "من",
+    },
+    'en': {
+        'NAV_HOME': "Home",
+        'NAV_TASKS': "Tasks",
+        'NAV_PAY': "Pay",
+        'NAV_USERS': "Users",
+        'NAV_MSG': "Msg",
+        'NAV_SET': "Set",
+        
+        'DASH_INDEX_TITLE': "Overview",
+        'DASH_USERS_SECTION': "Users",
+        'DASH_TOTAL_USERS': "Total Users",
+        'DASH_BANNED_USERS': "Banned",
+        'DASH_TASKS_SECTION': "Tasks",
+        'DASH_TOTAL_TASKS': "Total Tasks",
+        'DASH_APPROVED': "Approved",
+        'DASH_PENDING': "Pending",
+        'DASH_REJECTED': "Rejected",
+        'DASH_WITHDRAWALS_SECTION': "Withdrawals",
+        'DASH_TOTAL_REQS': "Total Requests",
+        'DASH_COMPLETED': "Completed",
+        
+        'DASH_TASKS_PAGE_TITLE': "Task Submissions",
+        'DASH_FILTER_ALL': "All",
+        'DASH_FILTER_PENDING': "Pending",
+        'DASH_FILTER_PAID': "Paid",
+        'DASH_FILTER_REJECTED': "Rejected",
+        'DASH_AGE_1D': "1 Day",
+        'DASH_AGE_2D': "2 Days",
+        'DASH_AGE_3D': "3 Days",
+        'DASH_SEARCH_USER_PH': "User ID...",
+        'DASH_SEARCH_DATE_PH': "Date...",
+        'DASH_FIND_BTN': "Find",
+        'DASH_RESET_BTN': "Reset",
+        'DASH_QUEUE_TITLE': "Submission Queue",
+        'DASH_RESULTS': "results",
+        'DASH_NO_TASKS': "No submissions found.",
+        'DASH_APPROVE_TASK': "Approve Submission",
+        'DASH_REJECT_TASK': "Reject Submission",
+        'DASH_CONFIRM_REJECT': "Confirm Rejection",
+        'DASH_REJECT_MSG': "Are you sure you want to reject this task? User will be notified.",
+        'DASH_CANCEL': "Cancel",
+        'DASH_MODAL_REJECT_BTN': "Reject",
+        
+        'DASH_W_PAGE_TITLE': "Withdrawals",
+        'DASH_W_REQS': "Withdrawal Requests",
+        'DASH_NO_WITHDRAWALS': "No requests found.",
+        'DASH_MARK_PAID': "Mark Paid",
+        'DASH_REASON': "Reason",
+        
+        'DASH_U_PAGE_TITLE': "User Management",
+        'DASH_U_SEARCH_PH': "Search users...",
+        'DASH_U_EDIT': "Edit User",
+        'DASH_U_ADJUST_BAL': "Adjust Balance",
+        'DASH_U_BAN': "Ban Account",
+        'DASH_U_UNBAN': "Unban User",
+        'DASH_U_BALANCE': "Balance",
+        'DASH_U_HOLD': "Hold",
+        'DASH_U_TASKS': "Tasks",
+        'DASH_U_STATUS_ACTIVE': "Active",
+        'DASH_U_STATUS_BANNED': "Banned",
+        
+        'DASH_BS_PAGE_TITLE': "Broadcast",
+        'DASH_BS_ALL': "Send to All",
+        'DASH_BS_USER': "Send to User",
+        'DASH_BS_CONTENT': "Message Content (HTML)",
+        'DASH_BS_SEND_BTN': "Send Message",
+        'DASH_BS_PH': "Type your message here...",
+        'DASH_BS_USER_ID': "User ID",
+
+        'SETTINGS_TITLE': "Global Settings",
+        'SETTINGS_CONFIG': "Bot Configuration",
+        'SETTINGS_GMAIL_PRICE': "Gmail Price ($)",
+        'SETTINGS_REF_BONUS': "Ref Bonus ($)",
+        'SETTINGS_MIN_WITHDRAWALS': "Minimum withdrawal limits:",
+        'SETTINGS_VODAFONE': "Vodafone ($)",
+        'SETTINGS_BINANCE': "Binance ($)",
+        'SETTINGS_USDT': "USDT (BEP20) ($)",
+        'SETTINGS_TRX': "TRX (TRC20) ($)",
+        'SETTINGS_BUYING_STATUS': "Buying Tasks Status",
+        'SETTINGS_ACTIVE': "🟢 Active",
+        'SETTINGS_PAUSED': "🔴 Paused",
+        'SETTINGS_UPDATE_BTN': "Update Settings",
+        'SETTINGS_LANG': "Dashboard Language",
+        'SETTINGS_REQ_CHANNELS': "Mandatory Subscription Channels",
+        'SETTINGS_REQ_CHANNELS_HELP': "Separate multiple channels with a comma (e.g., @channel1,@channel2).",
+        'ALERT_SETTINGS_SAVED': "Settings updated successfully! Changes are now active for the bot.",
+        'ALERT_LOGIN_SUCCESS': "Successfully logged in.",
+        
+        'PAGE_LABEL': "Page",
+        'OF_LABEL': "of",
+    }
+}
+
+

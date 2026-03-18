@@ -141,7 +141,8 @@ def set_user_status(user_id: int, status: str):
 
 def adjust_user_balance(user_id: int, delta: float):
     con = _conn()
-    con.execute("UPDATE users SET balance = balance + ? WHERE user_id = ?", (delta, user_id))
+    # Rounding to 2 decimal places to prevent floating point precision issues
+    con.execute("UPDATE users SET balance = ROUND(balance + ?, 2) WHERE user_id = ?", (delta, user_id))
     con.commit()
     con.close()
 
@@ -182,7 +183,10 @@ def get_referral_detailed_stats(user_id: int):
             invited_ids
         ).fetchone()
         tasks_total = row["cnt"] if row else 0
-        profit_total = tasks_total * REFERRAL_BONUS
+        # Use dynamic referral bonus from DB settings
+        conf = get_business_config()
+        ref_bonus = conf["REFERRAL_BONUS"]
+        profit_total = tasks_total * ref_bonus
         
         # Active referrals: referred users who have at least one approved task
         active_row = con.execute(
@@ -274,6 +278,16 @@ def get_user_submissions(user_id: int):
     ).fetchall()
     con.close()
     return rows
+
+
+def is_gmail_already_submitted(gmail: str) -> bool:
+    con = _conn()
+    row = con.execute(
+        "SELECT 1 FROM submissions WHERE LOWER(gmail_account) = LOWER(?)",
+        (gmail,),
+    ).fetchone()
+    con.close()
+    return row is not None
 
 
 def approve_submission(sub_id: int):
@@ -376,7 +390,11 @@ def reject_withdrawal(wid: int, reason: str):
     cur = con.cursor()
     row = cur.execute("SELECT * FROM withdrawals WHERE id=?", (wid,)).fetchone()
     if row and row["status"] == "pending":
-        # Withdrawal status updated (amount remains deducted as per user request)
+        # Refund user balance (rounded)
+        cur.execute(
+            "UPDATE users SET balance = ROUND(balance + ?, 2) WHERE user_id = ?",
+            (row["amount"], row["user_id"])
+        )
         # Update withdrawal status
         cur.execute(
             "UPDATE withdrawals SET status='rejected', reject_reason=? WHERE id=?",
@@ -437,11 +455,14 @@ def get_business_config():
     return {
         "GMAIL_PRICE":    float(get_setting("GMAIL_PRICE", GMAIL_PRICE)),
         "REFERRAL_BONUS": float(get_setting("REFERRAL_BONUS", REFERRAL_BONUS)),
+        "BUYING_ACTIVE":  get_setting("BUYING_ACTIVE", "1") == "1",
+        "REQUIRED_CHANNELS": get_setting("REQUIRED_CHANNELS", ""),
         "MIN_METHODS": {
             "💳 Vodafone Cash": voda,
             "🟡 Binance":       bina,
             "🟢 USDT (BEP20)":  usdt,
             "💎 TRX (TRC20)":   trx,
             "DEFAULT":          voda # fallback
-        }
+        },
+        "DASHBOARD_LANG": get_setting("DASHBOARD_LANG", "ar")
     }

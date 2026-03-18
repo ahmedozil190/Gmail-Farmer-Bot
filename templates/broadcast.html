@@ -1,28 +1,38 @@
 {% extends "layout.html" %}
 
-{% block title %}Broadcast Message{% endblock %}
+{% block title %}{{ strings.DASH_BS_PAGE_TITLE }}{% endblock %}
 
 {% block content %}
-<div class="glass-card" style="max-width: 800px;">
-    <h2 style="margin-top:0; font-size:1.1rem; border-bottom:1px solid rgba(255,255,255,0.05); padding-bottom:1rem; margin-bottom:1.5rem;">Send to All Users</h2>
+<div class="glass-card" style="max-width: 800px; margin-bottom: 2rem;">
+    <h2 style="margin-top:0; font-size:1.1rem; border-bottom:1px solid rgba(255,255,255,0.05); padding-bottom:1rem; margin-bottom:1.5rem;">{{ strings.DASH_BS_ALL }}</h2>
     
     <form action="{{ url_for('broadcast') }}" method="POST">
         <div class="form-group">
-            <label class="form-label">Broadcast Message Content (HTML Supported)</label>
-            <textarea name="message" class="form-control" rows="8" placeholder="Type your message here... You can use HTML tags like &lt;b&gt;, &lt;i&gt;, &lt;code&gt;." required></textarea>
-        </div>
-        
-        <div class="form-group" style="background: rgba(59, 130, 246, 0.1); padding: 1rem; border-radius: 8px; border: 1px solid rgba(59, 130, 246, 0.2);">
-            <div style="display: flex; gap: 10px; align-items: flex-start;">
-                <i class="fa-solid fa-circle-info" style="color:#60a5fa; margin-top:3px;"></i>
-                <p style="margin:0; font-size:0.9rem; color:#cbd5e1; line-height:1.5;">
-                    This message will be queued and sent to all registered users. Ensure the message is formatted correctly to avoid Telegram parsing errors.
-                </p>
-            </div>
+            <label class="form-label">{{ strings.DASH_BS_CONTENT }}</label>
+            <textarea name="message" class="form-control" rows="6" placeholder="{{ strings.DASH_BS_PH }}" required></textarea>
         </div>
         
         <div style="margin-top:1.5rem;">
-            <button type="submit" class="btn btn-primary"><i class="fa-solid fa-paper-plane fa-fw" style="margin-right:5px;"></i> Send Broadcast</button>
+            <button type="submit" class="btn btn-primary"><i class="fa-solid fa-bullhorn fa-fw" style="margin-right:5px;"></i> {{ strings.DASH_BS_SEND_BTN }}</button>
+        </div>
+    </form>
+</div>
+
+<div class="glass-card" style="max-width: 800px;">
+    <h2 style="margin-top:0; font-size:1.1rem; border-bottom:1px solid rgba(255,255,255,0.05); padding-bottom:1rem; margin-bottom:1.5rem;">{{ strings.DASH_BS_USER }}</h2>
+    
+    <form action="{{ url_for('broadcast') }}" method="POST">
+        <div class="form-group">
+            <label class="form-label">{{ strings.DASH_BS_USER_ID }}</label>
+            <input type="number" name="user_id" class="form-control" placeholder="e.g. 123456789" required>
+        </div>
+        <div class="form-group">
+            <label class="form-label">{{ strings.DASH_BS_CONTENT }}</label>
+            <textarea name="message" class="form-control" rows="4" placeholder="{{ strings.DASH_BS_PH }}" required></textarea>
+        </div>
+        
+        <div style="margin-top:1.5rem;">
+            <button type="submit" class="btn btn-primary" style="background: linear-gradient(135deg, #10b981, #059669);"><i class="fa-solid fa-paper-plane fa-fw" style="margin-right:5px;"></i> {{ strings.DASH_BS_SEND_BTN }}</button>
         </div>
     </form>
 </div>

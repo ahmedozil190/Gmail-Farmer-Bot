@@ -1,13 +1,25 @@
 {% extends "layout.html" %}
 
-{% block title %}Withdrawals{% endblock %}
+{% block title %}{{ strings.DASH_W_PAGE_TITLE }}{% endblock %}
 
 {% block content %}
+
+<!-- Stats Overview -->
+<div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 1rem;">
+    <div class="glass-card" style="padding: 10px; text-align: center; background: rgba(59, 130, 246, 0.05); border: 1px solid rgba(59, 130, 246, 0.1);">
+        <div style="font-size: 0.7rem; opacity: 0.7; text-transform: uppercase;">{{ strings.DASH_FILTER_PENDING }}</div>
+        <div style="font-size: 1.2rem; font-weight: 700; color: var(--accent-blue);">{{ stats.pending or 0 }}</div>
+    </div>
+    <div class="glass-card" style="padding: 10px; text-align: center; background: rgba(34, 197, 94, 0.05); border: 1px solid rgba(34, 197, 94, 0.1);">
+        <div style="font-size: 0.7rem; opacity: 0.7; text-transform: uppercase;">{{ strings.DASH_FILTER_PAID }}</div>
+        <div style="font-size: 1.2rem; font-weight: 700; color: var(--success);">{{ stats.completed or 0 }}</div>
+    </div>
+</div>
 
 <!-- Filters Section -->
 <div class="glass-card" style="padding: 1.25rem;">
     <div style="display: flex; gap: 4px; background: rgba(0,0,0,0.2); padding: 4px; border-radius: 12px; margin-bottom: 1rem;">
-        {% for tab, label in [('all','All'), ('pending','Pending'), ('completed','Paid'), ('rejected','Rejected')] %}
+        {% for tab, label in [('all', strings.DASH_FILTER_ALL), ('pending', strings.DASH_FILTER_PENDING), ('completed', strings.DASH_FILTER_PAID), ('rejected', strings.DASH_FILTER_REJECTED)] %}
         <a href="{{ url_for('withdrawals', status=tab, user_id=search_user, date=d_date) }}" 
            style="flex: 1; text-align: center; padding: 8px; border-radius: 8px; text-decoration: none; font-size: 0.85rem; font-weight: 600; color: {% if current_status == tab %}white{% else %}var(--text-secondary){% endif %}; background: {% if current_status == tab %}var(--accent-blue){% else %}transparent{% endif %}; transition: all 0.3s;">
            {{ label }}
@@ -18,17 +30,26 @@
     <form action="{{ url_for('withdrawals') }}" method="GET" style="display: flex; flex-direction: column; gap: 10px;">
         <input type="hidden" name="status" value="{{ current_status }}">
         <div style="display: flex; gap: 8px;">
-            <input type="text" name="user_id" class="form-control" style="height: 44px; font-size: 0.85rem; flex: 2;" placeholder="User ID..." value="{{ search_user }}">
-            <input type="date" name="date" class="form-control" style="height: 44px; font-size: 0.85rem; flex: 1; min-width: 120px;" value="{{ d_date }}">
+            <input type="text" name="user_id" class="form-control" style="height: 44px; font-size: 0.85rem; flex: 2;" placeholder="{{ strings.DASH_SEARCH_USER_PH }}" value="{{ search_user }}">
+            <input type="text" name="date" class="form-control" style="height: 44px; font-size: 0.85rem; flex: 1; min-width: 120px;" 
+                   placeholder="{{ strings.DASH_SEARCH_DATE_PH }}" 
+                   onfocus="(this.type='date')" 
+                   onblur="if(!this.value)this.type='text'"
+                   value="{{ d_date }}"
+                   {% if d_date %}type="date"{% endif %}>
         </div>
-        <button type="submit" class="btn btn-primary" style="height: 44px; border-radius: 12px;">Find Requests</button>
+        <button type="submit" class="btn btn-primary" style="height: 44px; border-radius: 12px; margin-bottom: 8px;">{{ strings.DASH_FIND_BTN }}</button>
+        <a href="{{ url_for('withdrawals') }}" class="btn" style="height: 44px; border-radius: 12px; background: rgba(255,255,255,0.05); color: var(--text-secondary); border: 1px solid var(--border-card);">
+            {{ strings.DASH_RESET_BTN }}
+        </a>
     </form>
 </div>
 
 <!-- Withdrawals List -->
 <div class="glass-card">
-    <div style="margin-bottom: 1rem;">
-        <h2 style="margin: 0; font-size: 1rem;">Withdrawal Requests</h2>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <h2 style="margin: 0; font-size: 1rem;">{{ strings.DASH_W_REQS }}</h2>
+        <span style="font-size: 0.75rem; opacity: 0.6;">{{ total_count }} {{ strings.DASH_RESULTS }}</span>
     </div>
 
     <div class="table-container">
@@ -37,11 +58,11 @@
             <div class="list-header">
                 <span class="list-title">{{ w.method.replace('💳','').replace('🟡','').replace('🟢','').replace('💎','').strip() }}</span>
                 {% if w.status == 'completed' %}
-                    <span class="badge approved">Paid</span>
+                    <span class="badge approved">{{ strings.DASH_COMPLETED }}</span>
                 {% elif w.status == 'rejected' %}
-                    <span class="badge rejected">Rejected</span>
+                    <span class="badge rejected">{{ strings.DASH_REJECTED }}</span>
                 {% else %}
-                    <span class="badge pending">Pending</span>
+                    <span class="badge pending">{{ strings.DASH_PENDING }}</span>
                 {% endif %}
             </div>
             
@@ -52,7 +73,7 @@
                     
                     {% if w.status == 'rejected' and w.reject_reason %}
                     <div style="grid-column: span 2; color: var(--danger); font-size: 0.8rem; background: rgba(239, 68, 68, 0.05); padding: 8px; border-radius: 8px; border: 1px solid rgba(239, 68, 68, 0.1);">
-                        <strong>Reason:</strong> {{ w.reject_reason }}
+                        <strong>{{ strings.DASH_REASON }}:</strong> {{ w.reject_reason }}
                     </div>
                     {% endif %}
 
@@ -65,12 +86,12 @@
 
             {% if w.status == 'pending' %}
             <div style="margin-top: 12px; display: flex; gap: 8px;">
-                <form action="{{ url_for('mark_paid', wid=w.id, status=current_status) }}" method="POST" style="flex: 2;">
+                <form action="{{ url_for('mark_paid', wid=w.id, status=current_status, user_id=search_user, date=d_date, page=page) }}" method="POST" style="flex: 2;">
                     <button type="submit" class="btn btn-primary" style="height: 42px; font-size: 0.85rem;">
-                        <i class="fa-solid fa-check"></i> Mark Paid
+                        <i class="fa-solid fa-check"></i> {{ strings.DASH_MARK_PAID }}
                     </button>
                 </form>
-                <form action="{{ url_for('reject_withdrawal_route', wid=w.id, status=current_status) }}" method="POST" style="flex: 1;">
+                <form action="{{ url_for('reject_withdrawal_route', wid=w.id, status=current_status, user_id=search_user, date=d_date, page=page) }}" method="POST" style="flex: 1;">
                     <button type="submit" class="btn btn-danger" style="height: 42px;">
                         <i class="fa-solid fa-xmark"></i>
                     </button>
@@ -79,9 +100,38 @@
             {% endif %}
         </div>
         {% else %}
-        <p style="text-align:center; padding:2rem; color:var(--text-secondary); font-style: italic;">No withdrawal requests.</p>
+        <p style="text-align:center; padding:2rem; color:var(--text-secondary); font-style: italic;">{{ strings.DASH_NO_WITHDRAWALS }}</p>
         {% endfor %}
     </div>
+
+    <!-- Pagination -->
+    {% if total_pages > 1 %}
+    <div style="margin-top: 1.5rem; display: flex; justify-content: center; align-items: center; gap: 15px;">
+        {% if page > 1 %}
+        <a href="{{ url_for('withdrawals', status=current_status, user_id=search_user, date=d_date, page=page-1) }}" 
+           class="btn" style="width: 40px; height: 40px; padding: 0; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.05); border: 1px solid var(--border-card);">
+            <i class="fa-solid fa-chevron-left"></i>
+        </a>
+        {% else %}
+        <div style="width: 40px; height: 40px; opacity: 0.3; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.02); border: 1px solid var(--border-card); border-radius: 12px;">
+            <i class="fa-solid fa-chevron-left"></i>
+        </div>
+        {% endif %}
+
+        <span style="font-size: 0.9rem; font-weight: 600;">{{ strings.PAGE_LABEL }} {{ page }} {{ strings.OF_LABEL }} {{ total_pages }}</span>
+
+        {% if page < total_pages %}
+        <a href="{{ url_for('withdrawals', status=current_status, user_id=search_user, date=d_date, page=page+1) }}" 
+           class="btn" style="width: 40px; height: 40px; padding: 0; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.05); border: 1px solid var(--border-card);">
+            <i class="fa-solid fa-chevron-right"></i>
+        </a>
+        {% else %}
+        <div style="width: 40px; height: 40px; opacity: 0.3; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.02); border: 1px solid var(--border-card); border-radius: 12px;">
+            <i class="fa-solid fa-chevron-right"></i>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
 </div>
 
 {% endblock %}

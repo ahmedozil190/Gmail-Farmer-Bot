@@ -9,6 +9,9 @@ from utils.ban_check import is_banned
 
 async def balance_handler_fn(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """💰 الرصيد — show breakdown in dual currency."""
+    from utils.subscription import require_subscription
+    if not await require_subscription(update, context):
+        return
     if await is_banned(update, context):
         return
     user_id = update.effective_user.id
@@ -42,6 +45,9 @@ async def balance_handler_fn(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
 async def history_handler_fn(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """📜 سجل العمليات — show payouts and account acceptance/rejection."""
+    from utils.subscription import require_subscription
+    if not await require_subscription(update, context):
+        return
     if await is_banned(update, context):
         return
     user_id = update.effective_user.id
@@ -123,6 +129,9 @@ async def history_handler_fn(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
 async def my_accounts_handler_fn(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """📂 حساباتي — show all user submissions."""
+    from utils.subscription import require_subscription
+    if not await require_subscription(update, context):
+        return
     if await is_banned(update, context):
         return
     user_id = update.effective_user.id

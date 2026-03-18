@@ -1,0 +1,80 @@
+{% extends "app/layout.html" %}
+
+{% block content %}
+<!-- Header -->
+<div class="wa-header">
+    <div class="wa-avatar">{{ user.full_name[0] if user.full_name else '?' }}</div>
+    <div>
+        <div class="wa-greeting">{{ strings.HOME_WELCOME }}</div>
+        <div class="wa-username">{{ user.full_name or 'User' }}</div>
+    </div>
+</div>
+
+<!-- Balance Card -->
+<div class="glass-card balance-card">
+    <div class="balance-label">{{ strings.HOME_BALANCE }}</div>
+    <div class="balance-amount">${{ "%.2f"|format(balance) }} <span class="currency">{{ strings.HOME_USD }}</span></div>
+    {% if pending > 0 %}
+    <div class="balance-pending">{{ strings.HOME_PENDING|format(pending) }}</div>
+    {% endif %}
+</div>
+
+<!-- Quick Actions -->
+<div class="quick-actions">
+    <a href="{{ url_for('app_tasks') }}" class="action-btn">
+        <span class="icon">📱</span>
+        <span class="text">{{ strings.HOME_NEW_TASK }}</span>
+    </a>
+    <a href="{{ url_for('app_wallet') }}" class="action-btn">
+        <span class="icon">💸</span>
+        <span class="text">{{ strings.HOME_WITHDRAW }}</span>
+    </a>
+    <a href="{{ url_for('app_referrals') }}" class="action-btn">
+        <span class="icon">🔗</span>
+        <span class="text">{{ strings.HOME_INVITE }}</span>
+    </a>
+</div>
+
+<!-- Stats -->
+<div class="glass-card">
+    <div class="card-title">{{ strings.HOME_STATS }}</div>
+    <div class="stats-row">
+        <div class="mini-stat green">
+            <div class="value">{{ approved_tasks }}</div>
+            <div class="label">{{ strings.HOME_APPROVED }}</div>
+        </div>
+        <div class="mini-stat amber">
+            <div class="value">{{ pending_tasks }}</div>
+            <div class="label">{{ strings.HOME_REQ_PENDING }}</div>
+        </div>
+        <div class="mini-stat red">
+            <div class="value">{{ rejected_tasks }}</div>
+            <div class="label">{{ strings.HOME_REJECTED }}</div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Activity -->
+{% if recent_tasks %}
+<div class="glass-card">
+    <div class="card-title">{{ strings.HOME_RECENT_TASKS }}</div>
+    {% for task in recent_tasks[:3] %}
+    <div class="list-item">
+        <div class="list-row">
+            <span style="font-size: 0.85rem; font-weight: 600;">{{ task.gmail_account }}</span>
+            <span class="badge {{ task.status }}">{{ strings['STATUS_' + task.status|upper] }}</span>
+        </div>
+        <div class="list-row" style="margin-top: 4px;">
+            <span class="list-label">{{ task.submitted_at[:10] }}</span>
+            <span class="list-label">${{ "%.2f"|format(task.price or 0) }}</span>
+        </div>
+    </div>
+    {% endfor %}
+    {% if recent_tasks|length > 3 %}
+    <a href="{{ url_for('app_tasks') }}" class="btn btn-outline btn-sm" style="margin-top: 8px;">
+        {{ strings.HOME_VIEW_ALL }}
+    </a>
+    {% endif %}
+</div>
+{% endif %}
+{% endblock %}

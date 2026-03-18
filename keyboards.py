@@ -106,8 +106,19 @@ def language_keyboard(lang: str = 'ar') -> ReplyKeyboardMarkup:
     # Special keyboard for language selection
     s = STRINGS.get(lang, STRINGS['ar'])
     kb = [
-        [KeyboardButton("🇸🇦 العربية"), KeyboardButton("🇺🇸 English")],
+        [KeyboardButton("العربية 🇸🇦"), KeyboardButton("🇺🇸 English")],
         [KeyboardButton(s['BTN_BACK'])]
+    ]
+    return ReplyKeyboardMarkup(kb, resize_keyboard=True)
+
+
+def tasks_menu_keyboard(lang: str, price_text: str) -> ReplyKeyboardMarkup:
+    """Sub-menu displaying available tasks."""
+    s = STRINGS.get(lang, STRINGS['ar'])
+    btn_gmail = s['BTN_TASK_GMAIL'].format(price=price_text)
+    kb = [
+        [KeyboardButton(btn_gmail)],
+        [KeyboardButton(s['BTN_BACK_MAIN'])],
     ]
     return ReplyKeyboardMarkup(kb, resize_keyboard=True)
 

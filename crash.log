@@ -1,6 +1,0 @@
-Traceback (most recent call last):
-  File "D:\9- My Projects\4- Telegram Bot\Gmail Farmer Bot\dashboard.py", line 206, in mark_paid
-    msg = STRINGS[lang]["WITHDRAW_PAID"].format(
-          ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
-KeyError: 'WITHDRAW_PAID'
-

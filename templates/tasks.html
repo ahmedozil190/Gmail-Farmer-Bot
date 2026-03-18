@@ -1,62 +1,287 @@
 {% extends "layout.html" %}
 
-{% block title %}Task Submissions{% endblock %}
+{% block title %}{{ strings.DASH_TASKS_PAGE_TITLE }}{% endblock %}
 
 {% block content %}
-<div class="glass-card">
-    <div style="margin-bottom: 1.5rem;">
-        <h2 style="margin: 0; font-size: 1rem;">Submission Queue</h2>
+
+<!-- Stats Overview -->
+<div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 1rem;">
+    <div class="glass-card" style="padding: 10px; text-align: center; border: 1px solid rgba(59, 130, 246, 0.1);">
+        <div style="font-size: 0.65rem; opacity: 0.7; text-transform: uppercase;">{{ strings.DASH_FILTER_PENDING }}</div>
+        <div style="font-size: 1.1rem; font-weight: 700; color: var(--accent-blue);">{{ stats.pending or 0 }}</div>
     </div>
-    
+    <div class="glass-card" style="padding: 10px; text-align: center; border: 1px solid rgba(168, 85, 247, 0.2); background: rgba(168, 85, 247, 0.05);">
+        <div style="font-size: 0.65rem; opacity: 0.7; text-transform: uppercase;">READY</div>
+        <div style="font-size: 1.1rem; font-weight: 700; color: var(--accent-purple);">{{ stats.ready or 0 }}</div>
+    </div>
+    <div class="glass-card" style="padding: 10px; text-align: center; border: 1px solid rgba(34, 197, 94, 0.1);">
+        <div style="font-size: 0.65rem; opacity: 0.7; text-transform: uppercase;">{{ strings.DASH_APPROVED }}</div>
+        <div style="font-size: 1.1rem; font-weight: 700; color: var(--success);">{{ stats.approved or 0 }}</div>
+    </div>
+</div>
+
+<!-- Filters Section -->
+<div class="glass-card" style="padding: 1.25rem;">
+    <!-- Type Filters -->
+    <div style="display: flex; gap: 4px; background: rgba(0,0,0,0.2); padding: 4px; border-radius: 12px; margin-bottom: 0.75rem; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none;">
+        {% for tab, label in [('all', strings.DASH_FILTER_ALL), ('pending', strings.DASH_FILTER_PENDING), ('approved', strings.DASH_FILTER_PAID), ('rejected', strings.DASH_FILTER_REJECTED)] %}
+        <a href="{{ url_for('tasks', status=tab, user_id=search_user, date=d_date) }}" 
+           style="flex: 1; min-width: 70px; text-align: center; padding: 8px; border-radius: 8px; text-decoration: none; font-size: 0.8rem; font-weight: 600; color: {% if current_status == tab %}white{% else %}var(--text-secondary){% endif %}; background: {% if current_status == tab %}var(--accent-blue){% else %}transparent{% endif %}; transition: all 0.3s; white-space: nowrap;">
+           {{ label }}
+        </a>
+        {% endfor %}
+    </div>
+
+    <!-- Age Filters -->
+    <div style="display: flex; gap: 4px; background: rgba(255,255,255,0.03); padding: 4px; border-radius: 12px; margin-bottom: 1rem; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; border: 1px solid rgba(255,255,255,0.05);">
+        {% for tab, label in [('1d', strings.DASH_AGE_1D), ('2d', strings.DASH_AGE_2D), ('3d', strings.DASH_AGE_3D)] %}
+        <a href="{{ url_for('tasks', status=tab, user_id=search_user, date=d_date) }}" 
+           style="flex: 1; min-width: 90px; text-align: center; padding: 8px; border-radius: 8px; text-decoration: none; font-size: 0.75rem; font-weight: 600; color: {% if current_status == tab %}white{% else %}var(--text-secondary){% endif %}; background: {% if current_status == tab %}var(--accent-purple){% else %}transparent{% endif %}; transition: all 0.3s; white-space: nowrap;">
+           <i class="fa-solid fa-clock" style="font-size: 0.7rem; opacity: 0.7; margin-right: 4px;"></i> {{ label }} ({{ stats[tab] or 0 }})
+        </a>
+        {% endfor %}
+    </div>
+
+    <form action="{{ url_for('tasks') }}" method="GET" style="display: flex; flex-direction: column; gap: 10px;">
+        <input type="hidden" name="status" value="{{ current_status }}">
+        <div style="display: flex; gap: 8px;">
+            <input type="text" name="user_id" class="form-control" style="height: 44px; font-size: 0.85rem; flex: 2;"
+                placeholder="{{ strings.DASH_SEARCH_USER_PH }}" value="{{ search_user }}">
+            <input type="text" name="date" class="form-control"
+                style="height: 44px; font-size: 0.85rem; flex: 1; min-width: 120px;" placeholder="{{ strings.DASH_SEARCH_DATE_PH }}"
+                onfocus="(this.type='date')" onblur="if(!this.value)this.type='text'" value="{{ d_date }}" {% if d_date
+                %}type="date" {% endif %}>
+        </div>
+        <button type="submit" class="btn btn-primary"
+            style="height: 44px; border-radius: 12px; margin-bottom: 8px;">{{ strings.DASH_FIND_BTN }}</button>
+        <a href="{{ url_for('tasks', status='pending') }}" class="btn"
+            style="height: 44px; border-radius: 12px; background: rgba(255,255,255,0.05); color: var(--text-secondary); border: 1px solid var(--border-card);">
+            {{ strings.DASH_RESET_BTN }}
+        </a>
+    </form>
+</div>
+
+<!-- Submission Queue -->
+<div class="glass-card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <h2 style="margin: 0; font-size: 1rem;">{{ strings.DASH_QUEUE_TITLE }}</h2>
+        <span style="font-size: 0.75rem; opacity: 0.6;">{{ total_count }} {{ strings.DASH_RESULTS }}</span>
+    </div>
+
     <div class="table-container">
         {% for task in tasks %}
-        <div class="list-item">
+        <div class="list-item" {% if task.is_ready %}style="border-left: 4px solid var(--accent-purple);" {% endif %}>
             <div class="list-header">
-                <span class="list-title">{{ task.gmail_account }}</span>
+                <div>
+                    <span class="list-title">{{ task.gmail_account }}</span>
+                    {% if task.is_ready %}
+                    <span
+                        style="display: inline-block; margin-left: 5px; font-size: 0.65rem; background: var(--accent-purple); color: white; padding: 2px 6px; border-radius: 4px; font-weight: 700; vertical-align: middle;">READY</span>
+                    {% endif %}
+                </div>
                 {% if task.status == 'approved' %}
-                    <span class="badge approved">Approved</span>
+                <span class="badge approved">{{ strings.DASH_APPROVED }}</span>
                 {% elif task.status == 'rejected' %}
-                    <span class="badge rejected">Rejected</span>
+                <span class="badge rejected">{{ strings.DASH_REJECTED }}</span>
                 {% else %}
-                    <span class="badge pending">Pending</span>
+                <span class="badge pending">{{ strings.DASH_PENDING }}</span>
                 {% endif %}
             </div>
-            
+
             <div class="list-meta">
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-                    <div><i class="fa-solid fa-user" style="font-size: 0.7rem; opacity: 0.7; margin-right: 4px;"></i> {{ task.user_id }}</div>
-                    <div style="text-align: right;"><i class="fa-solid fa-calendar-days" style="font-size: 0.7rem; opacity: 0.7; margin-right: 4px;"></i> {{ task.submitted_at[:16].replace('T', ', ') }}</div>
-                    <div style="font-family: monospace; color: var(--accent-purple);">{{ task.gmail_password }}</div>
-                    <div style="text-align: right; color: var(--success); font-weight: 700;">${{ "%.2f"|format(task.price) }}</div>
+                    <div style="color: var(--text-secondary); font-size: 0.8rem;"><i class="fa-solid fa-user"
+                            style="font-size: 0.7rem; opacity: 0.7; margin-right: 4px;"></i> {{ task.user_id }}</div>
+                    <div style="text-align: right; color: var(--success); font-weight: 700; font-size: 1.1rem;">${{
+                        "%.2f"|format(task.price) }}</div>
+
+                    <div
+                        style="grid-column: span 2; font-family: monospace; font-size: 0.75rem; word-break: break-all; background: rgba(255,255,255,0.03); padding: 6px; border-radius: 8px; border: 1px solid var(--border-card);">
+                        <strong>Pass:</strong> <span style="color: var(--accent-purple);">{{ task.gmail_password
+                            }}</span>
+                    </div>
+
+                    {% if task.status == 'rejected' and task.reject_reason %}
+                    <div
+                        style="grid-column: span 2; color: var(--danger); font-size: 0.8rem; background: rgba(239, 68, 68, 0.05); padding: 8px; border-radius: 8px; border: 1px solid rgba(239, 68, 68, 0.1);">
+                        <strong>Reason:</strong> {{ task.reject_reason }}
+                    </div>
+                    {% endif %}
+
+                    <div
+                        style="grid-column: span 2; display: flex; justify-content: space-between; align-items: center; font-size: 0.7rem; opacity: 0.6; margin-top: 4px;">
+                        <span>{{ task.submitted_at[:16].replace('T', ', ') }}</span>
+                        <span
+                            style="font-weight: 600; color: {% if task.is_ready %}var(--accent-purple){% else %}inherit{% endif %};">{{
+                            task.age_text }}</span>
+                    </div>
                 </div>
-                
-                {% if task.status == 'rejected' %}
-                <div style="margin-top: 8px; border-top: 1px solid rgba(239, 68, 68, 0.1); padding-top: 8px; color: var(--danger); font-size: 0.75rem;">
-                    <strong>Reason:</strong> {{ task.reject_reason }}
-                </div>
-                {% endif %}
             </div>
 
             {% if task.status == 'pending' %}
             <div style="margin-top: 10px; display: flex; flex-direction: column; gap: 10px;">
-                <form action="{{ url_for('handle_task', action='approve', task_id=task.id) }}" method="POST">
-                    <button type="submit" class="btn btn-primary" style="height: 40px; font-size: 0.85rem;">
-                        <i class="fa-solid fa-check"></i> Approve Submission
+                <form
+                    action="{{ url_for('handle_task', action='approve', task_id=task.id, status=current_status, user_id=search_user, date=d_date, page=page) }}"
+                    method="POST">
+                    <button type="submit" class="btn btn-primary"
+                        style="height: 44px; border-radius: 12px; font-size: 0.85rem; width: 100%;">
+                        <i class="fa-solid fa-check"></i> {{ strings.DASH_APPROVE_TASK }}
                     </button>
                 </form>
-                
-                <form action="{{ url_for('handle_task', action='reject', task_id=task.id) }}" method="POST" style="display: flex; gap: 8px;">
-                    <input type="text" name="reason" class="form-control" style="height: 40px; font-size: 0.8rem; background: rgba(255,255,255,0.05);" placeholder="Rejection reason..." required>
-                    <button type="submit" class="btn btn-danger" style="width: 50px; height: 40px;">
-                        <i class="fa-solid fa-xmark"></i>
+
+                <form
+                    id="reject-form-{{ task.id }}"
+                    action="{{ url_for('handle_task', action='reject', task_id=task.id, status=current_status, user_id=search_user, date=d_date, page=page) }}"
+                    method="POST">
+                    <button type="button" class="btn btn-danger"
+                        style="height: 44px; border-radius: 12px; font-size: 0.85rem; width: 100%;"
+                        onclick="openRejectModal('reject-form-{{ task.id }}')">
+                        <i class="fa-solid fa-xmark"></i> {{ strings.DASH_REJECT_TASK }}
                     </button>
                 </form>
             </div>
             {% endif %}
         </div>
         {% else %}
-        <p style="text-align:center; padding:2rem; color:var(--text-secondary); font-style: italic;">No submissions found.</p>
+        <p style="text-align:center; padding:2rem; color:var(--text-secondary); font-style: italic;">{{ strings.DASH_NO_TASKS }}</p>
         {% endfor %}
     </div>
+
+    <!-- Pagination -->
+    {% if total_pages > 1 %}
+    <div style="margin-top: 1.5rem; display: flex; justify-content: center; align-items: center; gap: 15px;">
+        {% if page > 1 %}
+        <a href="{{ url_for('tasks', status=current_status, user_id=search_user, date=d_date, page=page-1) }}"
+            class="btn"
+            style="width: 40px; height: 40px; padding: 0; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.05); border: 1px solid var(--border-card);">
+            <i class="fa-solid fa-chevron-left"></i>
+        </a>
+        {% else %}
+        <div
+            style="width: 40px; height: 40px; opacity: 0.3; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.02); border: 1px solid var(--border-card); border-radius: 12px;">
+            <i class="fa-solid fa-chevron-left"></i>
+        </div>
+        {% endif %}
+
+        <span style="font-size: 0.9rem; font-weight: 600;">{{ strings.PAGE_LABEL }} {{ page }} {{ strings.OF_LABEL }} {{ total_pages }}</span>
+
+        {% if page < total_pages %} <a
+            href="{{ url_for('tasks', status=current_status, user_id=search_user, date=d_date, page=page+1) }}"
+            class="btn"
+            style="width: 40px; height: 40px; padding: 0; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.05); border: 1px solid var(--border-card);">
+            <i class="fa-solid fa-chevron-right"></i>
+            </a>
+            {% else %}
+            <div
+                style="width: 40px; height: 40px; opacity: 0.3; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.02); border: 1px solid var(--border-card); border-radius: 12px;">
+                <i class="fa-solid fa-chevron-right"></i>
+            </div>
+            {% endif %}
+    </div>
+    {% endif %}
 </div>
+<!-- ═══════════════ REJECT CONFIRMATION MODAL ═══════════════ -->
+<div id="reject-modal" style="
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+">
+    <div style="
+        background: rgba(22,24,33,0.95);
+        border: 1px solid rgba(239,68,68,0.25);
+        border-radius: 24px;
+        padding: 2rem 1.5rem 1.5rem;
+        max-width: 360px;
+        width: 100%;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.6), 0 0 0 1px rgba(239,68,68,0.1);
+        animation: modalIn 0.25s cubic-bezier(0.34,1.56,0.64,1) both;
+        text-align: center;
+    ">
+        <!-- Icon -->
+        <div style="
+            width: 64px; height: 64px;
+            background: rgba(239,68,68,0.12);
+            border: 1px solid rgba(239,68,68,0.25);
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            margin: 0 auto 1.25rem;
+        ">
+            <i class="fa-solid fa-triangle-exclamation" style="font-size: 1.6rem; color: #ef4444;"></i>
+        </div>
+        <!-- Title -->
+        <div style="font-size: 1.1rem; font-weight: 700; color: #fff; margin-bottom: 0.5rem;">{{ strings.DASH_CONFIRM_REJECT }}</div>
+        <!-- Body -->
+        <div style="font-size: 0.85rem; color: #94a3b8; margin-bottom: 1.75rem; line-height: 1.6;">
+            {{ strings.DASH_REJECT_MSG }}
+        </div>
+        <!-- Buttons -->
+        <div style="display: flex; gap: 10px;">
+            <button onclick="closeRejectModal()" style="
+                flex: 1; height: 46px; border-radius: 14px;
+                background: rgba(255,255,255,0.06);
+                border: 1px solid rgba(255,255,255,0.1);
+                color: #94a3b8; font-family: inherit;
+                font-size: 0.9rem; font-weight: 600;
+                cursor: pointer; transition: all 0.2s;
+            " onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='rgba(255,255,255,0.06)'">
+                {{ strings.DASH_CANCEL }}
+            </button>
+            <button onclick="confirmReject()" style="
+                flex: 1; height: 46px; border-radius: 14px;
+                background: rgba(239,68,68,0.15);
+                border: 1px solid rgba(239,68,68,0.3);
+                color: #ef4444; font-family: inherit;
+                font-size: 0.9rem; font-weight: 700;
+                cursor: pointer; transition: all 0.2s;
+            " onmouseover="this.style.background='rgba(239,68,68,0.25)'" onmouseout="this.style.background='rgba(239,68,68,0.15)'">
+                <i class="fa-solid fa-xmark" style="margin-left: 4px;"></i> {{ strings.DASH_MODAL_REJECT_BTN }}
+            </button>
+        </div>
+    </div>
+</div>
+
+<style>
+@keyframes modalIn {
+    from { opacity: 0; transform: scale(0.85) translateY(20px); }
+    to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+#reject-modal.open { display: flex; }
+</style>
+
+<script>
+var _rejectFormId = null;
+
+function openRejectModal(formId) {
+    _rejectFormId = formId;
+    var modal = document.getElementById('reject-modal');
+    modal.style.display = 'flex';
+    // tiny delay so display:flex registers before class triggers animation
+    requestAnimationFrame(function() { modal.classList.add('open'); });
+}
+
+function closeRejectModal() {
+    var modal = document.getElementById('reject-modal');
+    modal.classList.remove('open');
+    modal.style.display = 'none';
+    _rejectFormId = null;
+}
+
+function confirmReject() {
+    if (_rejectFormId) {
+        document.getElementById(_rejectFormId).submit();
+    }
+}
+
+// Close on backdrop click
+document.getElementById('reject-modal').addEventListener('click', function(e) {
+    if (e.target === this) closeRejectModal();
+});
+</script>
 {% endblock %}

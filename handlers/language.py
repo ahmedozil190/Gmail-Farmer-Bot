@@ -48,5 +48,5 @@ async def change_lang_handler(update: Update, context: ContextTypes.DEFAULT_TYPE
     )
 
 # Filters for the language buttons
-language_handler = MessageHandler(filters.Regex(r"^🌐 (اللغة|Language)$"), language_btn_handler)
-select_lang_handler = MessageHandler(filters.Regex(r"^(🇸🇦 العربية|🇺🇸 English)$"), change_lang_handler)
+language_handler = MessageHandler(filters.Regex(r"^🌐\s*(اللغة|Language)$"), language_btn_handler)
+select_lang_handler = MessageHandler(filters.Regex(r"(🇸🇦 العربية|العربية 🇸🇦|🇺🇸 English)"), change_lang_handler)

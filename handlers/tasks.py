@@ -15,13 +15,16 @@ from utils.ban_check import is_banned
 import re
 
 # States
-TASK_CONTINUE, TASK_EMAIL = range(2)
+TASK_MENU, TASK_CONTINUE, TASK_EMAIL = range(3)
 
 # Unified password for all tasks
 UNIFIED_PWD = "Aa612003@"
 
 async def tasks_entry(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Entry-point: user clicked المهام."""
+    from utils.subscription import require_subscription
+    if not await require_subscription(update, context):
+        return
     if await is_banned(update, context):
         return
     user_id = update.effective_user.id
@@ -30,17 +33,62 @@ async def tasks_entry(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data['lang'] = lang
     s = STRINGS.get(lang, STRINGS['ar'])
     
+    from keyboards import tasks_menu_keyboard
+    
+    # Fetch real-time price
+    conf = get_business_config()
+    gmail_price = conf["GMAIL_PRICE"]
+    price_text = format_currency_dual(gmail_price, 'USD', lang)
+    
+    await update.message.reply_text(
+        s['TASKS_MENU_PROMPT'],
+        parse_mode="HTML",
+        reply_markup=tasks_menu_keyboard(lang, price_text)
+    )
+    
+    return TASK_MENU
+
+
+async def receive_task_choice(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """User clicked a task from the menu."""
+    text = update.message.text.strip()
+    lang = context.user_data.get('lang', 'ar')
+    s = STRINGS.get(lang, STRINGS['ar'])
+    
+    conf = get_business_config()
+    gmail_price = conf["GMAIL_PRICE"]
+    price_text = format_currency_dual(gmail_price, 'USD', lang)
+    
+    expected_gmail_btn = s['BTN_TASK_GMAIL'].format(price=price_text)
+    
+    if text == s['BTN_BACK_MAIN']:
+        return await cancel_task(update, context)
+        
+    if text == expected_gmail_btn:
+        if not conf.get("BUYING_ACTIVE", True):
+            await update.message.reply_text(
+                s['TASKS_PAUSED'],
+                parse_mode="HTML"
+            )
+            return TASK_MENU
+    else:
+        from keyboards import tasks_menu_keyboard
+        await update.message.reply_text(
+            s['ERROR_RETRY'],
+            reply_markup=tasks_menu_keyboard(lang, price_text)
+        )
+        return TASK_MENU
+        
+    # Send Instructions
     from keyboards import task_flow_keyboard
     
-    # Message 1: Instructions
     await update.message.reply_text(
         s['TASKS_INSTRUCTIONS'],
         parse_mode="HTML"
     )
     
-    # Message 2: Steps (sent shortly after)
     import asyncio
-    await asyncio.sleep(0.5) # small delay as requested
+    await asyncio.sleep(0.5)
     
     await update.message.reply_text(
         s['TASKS_STEPS'],
@@ -79,6 +127,17 @@ async def receive_email(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return TASK_EMAIL
 
+    # Check for duplicates
+    from database import is_gmail_already_submitted
+    if is_gmail_already_submitted(email):
+        from keyboards import task_cancel_only_keyboard
+        await update.message.reply_text(
+            s['ERR_DUPLICATE_GMAIL'],
+            reply_markup=task_cancel_only_keyboard(lang),
+            parse_mode="HTML"
+        )
+        return TASK_EMAIL
+
     # Automatically submit with UNIFIED_PWD
     user = update.effective_user
     sub_id = add_submission(user.id, email, UNIFIED_PWD)
@@ -108,8 +167,9 @@ async def receive_email(update: Update, context: ContextTypes.DEFAULT_TYPE):
     price_text = format_currency_dual(gmail_price, 'USD', a_lang)
 
     admin_text = a_s['ADMIN_NOTIFY_GMAIL'].format(
-        sub_id=sub_id, user_name=username, user_id=user.id,
-        email=email, pwd=UNIFIED_PWD, price_text=price_text
+        source="Bot",
+        user_name=username, user_id=user.id,
+        gmail=email, pwd=UNIFIED_PWD, sub_id=sub_id
     )
     
     await context.bot.send_message(chat_id=ADMIN_ID, text=admin_text, parse_mode="HTML")
@@ -142,6 +202,9 @@ from strings import STRINGS
 tasks_conv_handler = ConversationHandler(
     entry_points=[MessageHandler(filters.Regex(r"^(➕ تسجيل إيميل جديد|➕ Register a new Gmail)$"), tasks_entry)],
     states={
+        TASK_MENU: [
+            MessageHandler(filters.TEXT & ~filters.Regex(r"^(إلغاء المهمة ❌|Cancel Task ❌)$"), receive_task_choice)
+        ],
         TASK_CONTINUE: [
             MessageHandler(filters.Regex(r"^(متابعة ✅|Continue ✅)$"), receive_continue)
         ],

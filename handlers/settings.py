@@ -7,6 +7,9 @@ from utils.ban_check import is_banned
 
 async def settings_handler_fn(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """🛠 Settings Menu."""
+    from utils.subscription import require_subscription
+    if not await require_subscription(update, context):
+        return
     if await is_banned(update, context):
         return
     user = get_user(update.effective_user.id)

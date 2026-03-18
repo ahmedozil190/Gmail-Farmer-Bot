@@ -1,0 +1,64 @@
+<html lang="{{ user.language if user else 'ar' }}" dir="{{ 'rtl' if (user and user.language == 'ar') or not user else 'ltr' }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Gmail Farmer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/webapp.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            if (window.Telegram && window.Telegram.WebApp) {
+                Telegram.WebApp.ready();
+                Telegram.WebApp.expand();
+                Telegram.WebApp.setHeaderColor('secondary_bg_color');
+                
+                // Pass initData to server only if user is not yet authenticated in session
+                var isAuthenticated = {{ 'true' if session.get('tg_user_id') else 'false' }};
+                var initData = Telegram.WebApp.initData;
+                if (initData && !isAuthenticated && !window.location.search.includes('initData=')) {
+                    var sep = window.location.search ? '&' : '?';
+                    window.location.replace(window.location.pathname + sep + 'initData=' + encodeURIComponent(initData));
+                }
+            }
+        });
+    </script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}" style="margin-top: 1rem;">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </div>
+
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav">
+        <a href="{{ url_for('app_home') }}" class="nav-item {% if page == 'home' %}active{% endif %}">
+            <i class="fa-solid fa-house"></i>
+            <span>{{ strings.NAV_HOME if strings else 'Home' }}</span>
+        </a>
+        <a href="{{ url_for('app_tasks') }}" class="nav-item {% if page == 'tasks' %}active{% endif %}">
+            <i class="fa-solid fa-list-check"></i>
+            <span>{{ strings.NAV_TASKS if strings else 'Tasks' }}</span>
+        </a>
+        <a href="{{ url_for('app_wallet') }}" class="nav-item {% if page == 'wallet' %}active{% endif %}">
+            <i class="fa-solid fa-wallet"></i>
+            <span>{{ strings.NAV_WALLET if strings else 'Wallet' }}</span>
+        </a>
+        <a href="{{ url_for('app_referrals') }}" class="nav-item {% if page == 'referrals' %}active{% endif %}">
+            <i class="fa-solid fa-users"></i>
+            <span>{{ strings.NAV_REFERRALS if strings else 'Referrals' }}</span>
+        </a>
+    </nav>
+
+    {% block scripts %}{% endblock %}
+</body>
+</html>

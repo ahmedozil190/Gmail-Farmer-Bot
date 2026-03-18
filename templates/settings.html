@@ -1,55 +1,177 @@
 {% extends "layout.html" %}
 
-{% block title %}Global Settings{% endblock %}
+{% block title %}{{ strings.NAV_SET }}{% endblock %}
 
 {% block content %}
+<style>
+    .form-control {
+        background: #101118 !important;
+        /* Extremely dark */
+        color: white !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        height: 50px;
+        margin-bottom: 5px;
+    }
+
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+
+    .form-label {
+        font-weight: 500;
+        margin-bottom: 8px;
+        display: block;
+        color: var(--text-secondary);
+    }
+
+    .status-btn-group {
+        display: flex;
+        gap: 12px;
+        margin-top: 10px;
+    }
+
+    .status-btn-item {
+        flex: 1;
+        text-align: center;
+        padding: 14px;
+        border-radius: 12px;
+        cursor: pointer;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: rgba(255, 255, 255, 0.03);
+        font-weight: 600;
+        color: var(--text-secondary);
+        transition: all 0.2s ease;
+        user-select: none;
+    }
+
+    .status-radio {
+        display: none;
+    }
+
+    /* Active States */
+    .status-radio:checked+.status-btn-item.active-btn {
+        background: rgba(34, 197, 94, 0.12);
+        border-color: #22c55e;
+        color: #22c55e;
+    }
+
+    .status-radio:checked+.status-btn-item.paused-btn {
+        background: rgba(239, 68, 68, 0.12);
+        border-color: #ef4444;
+        color: #ef4444;
+    }
+
+    .status-radio:checked+.status-btn-item.lang-btn {
+        background: rgba(59, 130, 246, 0.12);
+        border-color: #3b82f6;
+        color: #3b82f6;
+    }
+
+    .glass-card {
+        padding: 2rem !important;
+    }
+</style>
+
 <div class="glass-card">
-    <div style="margin-bottom: 1.5rem;">
-        <h2 style="margin: 0; font-size: 1.1rem; color: white;">Bot Configuration</h2>
+    <div style="margin-bottom: 2rem;">
+        <h2 style="margin: 0; font-size: 1.25rem; color: white; font-weight: 700;">{{ strings.SETTINGS_CONFIG }}</h2>
     </div>
-    
+
     <form action="{{ url_for('settings') }}" method="POST">
+        <!-- Configuration Section -->
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
             <div class="form-group">
-                <label class="form-label">Gmail Price ($)</label>
+                <label class="form-label">{{ strings.SETTINGS_GMAIL_PRICE }}</label>
                 <input type="number" step="0.01" name="gmail_price" class="form-control" value="{{ price }}" required>
             </div>
-            
+
             <div class="form-group">
-                <label class="form-label">Ref Bonus ($)</label>
+                <label class="form-label">{{ strings.SETTINGS_REF_BONUS }}</label>
                 <input type="number" step="0.01" name="referral_bonus" class="form-control" value="{{ bonus }}" required>
             </div>
         </div>
-        
-        <div style="margin-top: 10px; margin-bottom: 20px;">
-            <p style="font-size: 0.8rem; color: var(--text-secondary);"><i class="fa-solid fa-circle-info" style="margin-right: 5px;"></i> Minimum withdrawal limits per method:</p>
+
+        <div class="form-group" style="margin-top: 15px; margin-bottom: 2rem;">
+            <label class="form-label">{{ strings.SETTINGS_REQ_CHANNELS }}</label>
+            <input type="text" name="required_channels" class="form-control" placeholder="@channel1, @channel2" value="{{ required_channels }}">
+            <small style="color: var(--text-secondary); display: block; margin-top: 5px;">{{ strings.SETTINGS_REQ_CHANNELS_HELP }}</small>
         </div>
 
+
+
+        <!-- Limits Section Title -->
+        <div style="margin-bottom: 1.25rem;">
+            <p
+                style="font-size: 0.9rem; color: var(--text-secondary); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">
+                <i class="fa-solid fa-circle-info" style="margin-right: 5px; color: var(--accent-blue);"></i>
+                {{ strings.SETTINGS_MIN_WITHDRAWALS }}
+            </p>
+        </div>
+
+        <!-- Limits (Grid Layout) -->
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
             <div class="form-group">
-                <label class="form-label">Vodafone ($)</label>
+                <label class="form-label">{{ strings.SETTINGS_VODAFONE }}</label>
                 <input type="number" step="0.01" name="min_voda" class="form-control" value="{{ min_voda }}" required>
             </div>
 
             <div class="form-group">
-                <label class="form-label">Binance ($)</label>
+                <label class="form-label">{{ strings.SETTINGS_BINANCE }}</label>
                 <input type="number" step="0.01" name="min_binance" class="form-control" value="{{ min_binance }}" required>
             </div>
 
             <div class="form-group">
-                <label class="form-label">USDT (BEP20) ($)</label>
+                <label class="form-label">{{ strings.SETTINGS_USDT }}</label>
                 <input type="number" step="0.01" name="min_usdt" class="form-control" value="{{ min_usdt }}" required>
             </div>
 
             <div class="form-group">
-                <label class="form-label">TRX (TRC20) ($)</label>
+                <label class="form-label">{{ strings.SETTINGS_TRX }}</label>
                 <input type="number" step="0.01" name="min_trx" class="form-control" value="{{ min_trx }}" required>
             </div>
         </div>
-        
-        <div style="margin-top: 1.5rem;">
-            <button type="submit" class="btn btn-primary" style="height: 50px; font-size: 1rem;">
-                <i class="fa-solid fa-floppy-disk"></i> Update Bot Settings
+
+
+
+        <!-- Status Selection -->
+        <div class="form-group">
+            <label class="form-label">{{ strings.SETTINGS_BUYING_STATUS }}</label>
+            <div class="status-btn-group">
+                <label style="flex: 1;">
+                    <input type="radio" name="buying_active" value="1" class="status-radio" {% if buying_active
+                        %}checked{% endif %}>
+                    <div class="status-btn-item active-btn">{{ strings.SETTINGS_ACTIVE }}</div>
+                </label>
+                <label style="flex: 1;">
+                    <input type="radio" name="buying_active" value="0" class="status-radio" {% if not buying_active
+                        %}checked{% endif %}>
+                    <div class="status-btn-item paused-btn">{{ strings.SETTINGS_PAUSED }}</div>
+                </label>
+            </div>
+        </div>
+
+        <!-- Language Selection -->
+        <div class="form-group" style="margin-top: 2rem;">
+            <label class="form-label">{{ strings.SETTINGS_LANG }}</label>
+            <div class="status-btn-group">
+                <label style="flex: 1;">
+                    <input type="radio" name="dash_lang" value="ar" class="status-radio" {% if dash_lang=='ar'
+                        %}checked{% endif %}>
+                    <div class="status-btn-item lang-btn">العربية 🇪🇬</div>
+                </label>
+                <label style="flex: 1;">
+                    <input type="radio" name="dash_lang" value="en" class="status-radio" {% if dash_lang=='en'
+                        %}checked{% endif %}>
+                    <div class="status-btn-item lang-btn">English 🇺🇸</div>
+                </label>
+            </div>
+        </div>
+
+        <!-- Submit Button -->
+        <div style="margin-top: 3rem;">
+            <button type="submit" class="btn btn-primary"
+                style="height: 56px; font-size: 1.1rem; border-radius: 16px; font-weight: 700; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
+                <i class="fa-solid fa-floppy-disk" style="margin-right: 8px;"></i> {{ strings.SETTINGS_UPDATE_BTN }}
             </button>
         </div>
     </form>
